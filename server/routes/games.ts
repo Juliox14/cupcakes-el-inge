@@ -3,7 +3,7 @@ import { supabaseServer } from '../lib/supabase'
 import { serverCache } from '../lib/cache'
 import { rateLimiter } from '../lib/rateLimit'
 import type { Prize } from '../../src/types'
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 
 export const gamesRouter = new Hono()
 

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import fs from 'fs'
-import path from 'path'
+import fs from 'node:fs'
+import path from 'node:path'
 
 // Función para garantizar la lectura de .env en el servidor de desarrollo de Vite / Node
 function getEnvConfig() {

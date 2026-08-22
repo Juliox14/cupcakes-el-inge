@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie'
 import { supabaseServer } from '../lib/supabase'
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 import { 
   createJWT, 
   verifyJWT, 
