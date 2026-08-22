@@ -107,7 +107,7 @@ couponsRouter.post('/verify', async (c) => {
 // Canjear cupón en tiempo real (exclusivo para Administrador / Caja)
 couponsRouter.post('/redeem', requireAdmin, async (c) => {
   try {
-    const authUser = c.get('user')
+    const authUser: any = (c.get as any)('user')
     const { coupon_id, admin_id } = await c.req.json()
 
     if (!coupon_id) {

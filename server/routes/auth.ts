@@ -550,11 +550,11 @@ authRouter.get('/user/:query', requireAdmin, async (c) => {
 // 8. RECLAMAR RECOMPENSA SEMANAL DE 5 CUPCAKES (+1 TIRO EXTRA)
 authRouter.post('/claim-weekly-reward', requireAuth, async (c) => {
   try {
-    const authUser = c.get('user')
+    const authUser: any = (c.get as any)('user')
     const { user_id } = await c.req.json()
 
     // Solo el propio usuario autenticado o un admin puede reclamar su recompensa
-    if (authUser.role !== 'admin' && authUser.id !== user_id) {
+    if (authUser && authUser.role !== 'admin' && authUser.id !== user_id) {
       return c.json({ error: 'No autorizado para reclamar recompensas de otro usuario.' }, 403)
     }
 
