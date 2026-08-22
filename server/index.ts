@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { gamesRouter } from './routes/games.js'

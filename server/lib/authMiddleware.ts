@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { Context, Next } from 'hono'
 import { getCookie } from 'hono/cookie'
 import * as crypto from 'crypto'

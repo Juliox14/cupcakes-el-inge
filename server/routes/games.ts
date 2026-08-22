@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { Hono } from 'hono'
 import { supabaseServer } from '../lib/supabase.js'
 import { serverCache } from '../lib/cache.js'

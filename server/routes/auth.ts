@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { Hono } from 'hono'
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie'
 import { supabaseServer } from '../lib/supabase.js'
