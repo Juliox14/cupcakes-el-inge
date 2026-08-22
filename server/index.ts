@@ -1,16 +1,16 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { gamesRouter } from './routes/games'
-import { couponsRouter } from './routes/coupons'
-import { adminRouter } from './routes/admin'
-import { authRouter } from './routes/auth'
-import { productsRouter } from './routes/products'
+import { gamesRouter } from './routes/games.js'
+import { couponsRouter } from './routes/coupons.js'
+import { adminRouter } from './routes/admin.js'
+import { authRouter } from './routes/auth.js'
+import { productsRouter } from './routes/products.js'
 
 const app = new Hono()
 
 // Orígenes permitidos para CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o: string) => o.trim())
   : [
       'http://localhost:5173',
       'http://localhost:3000',

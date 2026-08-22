@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie'
-import { supabaseServer } from '../lib/supabase'
-import crypto from 'node:crypto'
+import { supabaseServer } from '../lib/supabase.js'
+import * as crypto from 'crypto'
 import { 
   createJWT, 
   verifyJWT, 
@@ -9,8 +9,8 @@ import {
   requireAuth, 
   requireAdmin,
   extractToken 
-} from '../lib/authMiddleware'
-import { rateLimiter } from '../lib/rateLimit'
+} from '../lib/authMiddleware.js'
+import { rateLimiter } from '../lib/rateLimit.js'
 
 export const authRouter = new Hono()
 

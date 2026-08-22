@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import fs from 'node:fs'
-import path from 'node:path'
+import * as fs from 'fs'
+import * as path from 'path'
 
 // Función para garantizar la lectura de .env en el servidor de desarrollo de Vite / Node
 function getEnvConfig() {
@@ -9,7 +9,7 @@ function getEnvConfig() {
     const envPath = path.resolve(process.cwd(), '.env')
     if (fs.existsSync(envPath)) {
       const content = fs.readFileSync(envPath, 'utf-8')
-      content.split('\n').forEach(line => {
+      content.split('\n').forEach((line: string) => {
         const clean = line.trim()
         if (clean && !clean.startsWith('#') && clean.includes('=')) {
           const idx = clean.indexOf('=')

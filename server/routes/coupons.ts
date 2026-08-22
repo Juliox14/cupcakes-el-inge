@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { supabaseServer } from '../lib/supabase'
-import { serverCache } from '../lib/cache'
-import { requireAdmin } from '../lib/authMiddleware'
+import { supabaseServer } from '../lib/supabase.js'
+import { serverCache } from '../lib/cache.js'
+import { requireAdmin } from '../lib/authMiddleware.js'
 
 export const couponsRouter = new Hono()
 

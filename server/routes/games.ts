@@ -1,9 +1,25 @@
 import { Hono } from 'hono'
-import { supabaseServer } from '../lib/supabase'
-import { serverCache } from '../lib/cache'
-import { rateLimiter } from '../lib/rateLimit'
-import type { Prize } from '../../src/types'
-import crypto from 'node:crypto'
+import { supabaseServer } from '../lib/supabase.js'
+import { serverCache } from '../lib/cache.js'
+import { rateLimiter } from '../lib/rateLimit.js'
+export interface Prize {
+  id: string
+  title?: string
+  titulo?: string
+  description?: string
+  descripcion?: string
+  tier?: string
+  categoria_nivel?: 'sin_premio' | 'promocion' | 'alto_valor'
+  probability_weight?: number
+  peso_probabilidad?: number
+  badge_color?: string
+  color_distintivo?: string
+  active?: boolean
+  activo?: boolean
+  producto_id?: string | null
+  [key: string]: any
+}
+import * as crypto from 'crypto'
 
 export const gamesRouter = new Hono()
 

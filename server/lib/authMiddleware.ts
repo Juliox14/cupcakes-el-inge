@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono'
 import { getCookie } from 'hono/cookie'
-import crypto from 'node:crypto'
+import * as crypto from 'crypto'
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'cupcakes-el-inge-secret-key-2026-tuxtla-chiapas'
 
