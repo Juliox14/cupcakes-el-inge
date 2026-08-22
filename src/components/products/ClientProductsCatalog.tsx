@@ -143,7 +143,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
     e.preventDefault()
     if (!selectedItem) return
 
-    const phoneAdmin = '5219611234567'
+    const phoneAdmin = '13069421565'
     const notesLine = deliveryNotes ? ('\n📝 *Notas/Indicaciones:* ' + deliveryNotes) : ''
     const textMsg = '¡Hola Inge! 🧁 Me gustaría hacer un encargo desde la app:\n\n' +
       '📦 *Pedido:* ' + selectedItem.title + '\n' +
@@ -458,7 +458,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
           Para pedidos grandes de más de 24 piezas, por favor cotiza con anticipación directamente por WhatsApp.
         </p>
         <a
-          href="https://wa.me/5219611234567?text=%C2%A1Hola%20Inge!%20%F0%9F%A7%81%20Me%20gustar%C3%ADa%20cotizar%20un%20pedido%20especial%20de%20m%C3%A1s%20de%2024%20cupcakes%20o%20para%20un%20evento.%20%C2%BFMe%20podr%C3%ADas%20dar%20informes%3F"
+          href="https://wa.me/13069421565?text=%C2%A1Hola%20Inge!%20%F0%9F%A7%81%20Me%20gustar%C3%ADa%20cotizar%20un%20pedido%20especial%20de%20m%C3%A1s%20de%2024%20cupcakes%20o%20para%20un%20evento.%20%C2%BFMe%20podr%C3%ADas%20dar%20informes%3F"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full py-2 px-4 rounded-xl bg-white text-gray-900 hover:bg-gray-50 active:scale-95 font-bold text-xs shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer"
