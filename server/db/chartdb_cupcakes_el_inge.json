@@ -1,0 +1,669 @@
+{
+  "id": "cupcakes-el-inge-db",
+  "name": "Cupcakes El Inge - Sistema de Lealtad & Mostrador",
+  "createdAt": "2026-08-19T03:18:00.000Z",
+  "updatedAt": "2026-08-19T03:18:00.000Z",
+  "databaseType": "postgresql",
+  "tables": [
+    {
+      "id": "1",
+      "name": "usuarios",
+      "x": -350,
+      "y": -150,
+      "fields": [
+        {
+          "id": "101",
+          "name": "id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": true,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "102",
+          "name": "nombre_completo",
+          "type": { "id": "varchar", "name": "varchar(100)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "103",
+          "name": "correo",
+          "type": { "id": "varchar", "name": "varchar(150)" },
+          "primaryKey": false,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "104",
+          "name": "telefono",
+          "type": { "id": "varchar", "name": "varchar(15)" },
+          "primaryKey": false,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "105",
+          "name": "password_hash",
+          "type": { "id": "text", "name": "text" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "106",
+          "name": "rol",
+          "type": { "id": "varchar", "name": "varchar(20)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "105",
+          "name": "tiros_disponibles",
+          "type": { "id": "int", "name": "int" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "106",
+          "name": "total_cupcakes_comprados",
+          "type": { "id": "int", "name": "int" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "107",
+          "name": "fecha_creacion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "108",
+          "name": "fecha_actualizacion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        }
+      ],
+      "indexes": [
+        {
+          "id": "idx_usuarios_pk",
+          "name": "usuarios_pkey",
+          "unique": true,
+          "fieldIds": ["101"],
+          "isPrimaryKey": true,
+          "createdAt": 1787130000000
+        }
+      ],
+      "checkConstraints": [],
+      "color": "#3b82f6",
+      "isView": false,
+      "createdAt": 1787130000000,
+      "order": 1,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "2",
+      "name": "compras",
+      "x": -350,
+      "y": 250,
+      "fields": [
+        {
+          "id": "201",
+          "name": "id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": true,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "202",
+          "name": "usuario_id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": true,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "203",
+          "name": "nombre_cliente",
+          "type": { "id": "varchar", "name": "varchar(100)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": true,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "204",
+          "name": "cantidad_cupcakes",
+          "type": { "id": "int", "name": "int" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "205",
+          "name": "monto_total",
+          "type": { "id": "decimal", "name": "decimal(10,2)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "206",
+          "name": "tiros_otorgados",
+          "type": { "id": "int", "name": "int" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "207",
+          "name": "registrado_por",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": true,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "208",
+          "name": "fecha_creacion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        }
+      ],
+      "indexes": [
+        {
+          "id": "idx_compras_pk",
+          "name": "compras_pkey",
+          "unique": true,
+          "fieldIds": ["201"],
+          "isPrimaryKey": true,
+          "createdAt": 1787130000000
+        }
+      ],
+      "checkConstraints": [],
+      "color": "#f97316",
+      "isView": false,
+      "createdAt": 1787130000000,
+      "order": 2,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "3",
+      "name": "premios",
+      "x": 200,
+      "y": -150,
+      "fields": [
+        {
+          "id": "301",
+          "name": "id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": true,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "302",
+          "name": "titulo",
+          "type": { "id": "varchar", "name": "varchar(150)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "303",
+          "name": "descripcion",
+          "type": { "id": "text", "name": "text" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "304",
+          "name": "categoria_nivel",
+          "type": { "id": "varchar", "name": "varchar(30)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "305",
+          "name": "peso_probabilidad",
+          "type": { "id": "int", "name": "int" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "306",
+          "name": "color_distintivo",
+          "type": { "id": "varchar", "name": "varchar(10)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "307",
+          "name": "activo",
+          "type": { "id": "boolean", "name": "boolean" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "308",
+          "name": "fecha_creacion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        }
+      ],
+      "indexes": [
+        {
+          "id": "idx_premios_pk",
+          "name": "premios_pkey",
+          "unique": true,
+          "fieldIds": ["301"],
+          "isPrimaryKey": true,
+          "createdAt": 1787130000000
+        }
+      ],
+      "checkConstraints": [],
+      "color": "#10b981",
+      "isView": false,
+      "createdAt": 1787130000000,
+      "order": 3,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "4",
+      "name": "cupones",
+      "x": 200,
+      "y": 250,
+      "fields": [
+        {
+          "id": "401",
+          "name": "id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": true,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "402",
+          "name": "codigo",
+          "type": { "id": "varchar", "name": "varchar(30)" },
+          "primaryKey": false,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "403",
+          "name": "usuario_id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "404",
+          "name": "premio_id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "405",
+          "name": "token_qr",
+          "type": { "id": "varchar", "name": "varchar(100)" },
+          "primaryKey": false,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "406",
+          "name": "estado",
+          "type": { "id": "varchar", "name": "varchar(20)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "407",
+          "name": "fecha_expiracion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "408",
+          "name": "fecha_canje",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": true,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "409",
+          "name": "canjeado_por",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": true,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "410",
+          "name": "fecha_creacion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        }
+      ],
+      "indexes": [
+        {
+          "id": "idx_cupones_pk",
+          "name": "cupones_pkey",
+          "unique": true,
+          "fieldIds": ["401"],
+          "isPrimaryKey": true,
+          "createdAt": 1787130000000
+        }
+      ],
+      "checkConstraints": [],
+      "color": "#8b5cf6",
+      "isView": false,
+      "createdAt": 1787130000000,
+      "order": 4,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "5",
+      "name": "configuracion_sistema",
+      "x": -800,
+      "y": -150,
+      "fields": [
+        {
+          "id": "501",
+          "name": "clave",
+          "type": { "id": "varchar", "name": "varchar(50)" },
+          "primaryKey": true,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "502",
+          "name": "valor",
+          "type": { "id": "jsonb", "name": "jsonb" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "503",
+          "name": "fecha_actualizacion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        }
+      ],
+      "indexes": [
+        {
+          "id": "idx_configuracion_pk",
+          "name": "configuracion_pkey",
+          "unique": true,
+          "fieldIds": ["501"],
+          "isPrimaryKey": true,
+          "createdAt": 1787130000000
+        }
+      ],
+      "checkConstraints": [],
+      "color": "#ec4899",
+      "isView": false,
+      "createdAt": 1787130000000,
+      "order": 5,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "6",
+      "name": "historial_juegos",
+      "x": -800,
+      "y": 250,
+      "fields": [
+        {
+          "id": "601",
+          "name": "id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": true,
+          "unique": true,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "602",
+          "name": "usuario_id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "603",
+          "name": "tipo_juego",
+          "type": { "id": "varchar", "name": "varchar(30)" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "604",
+          "name": "es_ganador",
+          "type": { "id": "boolean", "name": "boolean" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "605",
+          "name": "premio_id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": true,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "606",
+          "name": "cupon_id",
+          "type": { "id": "uuid", "name": "uuid" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": true,
+          "createdAt": 1787130000000
+        },
+        {
+          "id": "607",
+          "name": "fecha_creacion",
+          "type": { "id": "timestamp", "name": "timestamptz" },
+          "primaryKey": false,
+          "unique": false,
+          "nullable": false,
+          "createdAt": 1787130000000
+        }
+      ],
+      "indexes": [
+        {
+          "id": "idx_historial_pk",
+          "name": "historial_pkey",
+          "unique": true,
+          "fieldIds": ["601"],
+          "isPrimaryKey": true,
+          "createdAt": 1787130000000
+        }
+      ],
+      "checkConstraints": [],
+      "color": "#06b6d4",
+      "isView": false,
+      "createdAt": 1787130000000,
+      "order": 6,
+      "diagramId": "cupcakes_diagram"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel_compras_usuario",
+      "name": "compras_usuario_id_fk",
+      "sourceTableId": "2",
+      "targetTableId": "1",
+      "sourceFieldId": "202",
+      "targetFieldId": "101",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "rel_compras_admin",
+      "name": "compras_registrado_por_fk",
+      "sourceTableId": "2",
+      "targetTableId": "1",
+      "sourceFieldId": "207",
+      "targetFieldId": "101",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "rel_cupones_usuario",
+      "name": "cupones_usuario_id_fk",
+      "sourceTableId": "4",
+      "targetTableId": "1",
+      "sourceFieldId": "403",
+      "targetFieldId": "101",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "rel_cupones_premio",
+      "name": "cupones_premio_id_fk",
+      "sourceTableId": "4",
+      "targetTableId": "3",
+      "sourceFieldId": "404",
+      "targetFieldId": "301",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "rel_cupones_admin",
+      "name": "cupones_canjeado_por_fk",
+      "sourceTableId": "4",
+      "targetTableId": "1",
+      "sourceFieldId": "409",
+      "targetFieldId": "101",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "rel_historial_usuario",
+      "name": "historial_usuario_id_fk",
+      "sourceTableId": "6",
+      "targetTableId": "1",
+      "sourceFieldId": "602",
+      "targetFieldId": "101",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "rel_historial_premio",
+      "name": "historial_premio_id_fk",
+      "sourceTableId": "6",
+      "targetTableId": "3",
+      "sourceFieldId": "605",
+      "targetFieldId": "301",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    },
+    {
+      "id": "rel_historial_cupon",
+      "name": "historial_cupon_id_fk",
+      "sourceTableId": "6",
+      "targetTableId": "4",
+      "sourceFieldId": "606",
+      "targetFieldId": "401",
+      "sourceCardinality": "one",
+      "targetCardinality": "many",
+      "createdAt": 1787130000000,
+      "diagramId": "cupcakes_diagram"
+    }
+  ],
+  "dependencies": [],
+  "areas": [],
+  "customTypes": [],
+  "notes": []
+}

@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-heading: 'Outfit', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  
+  --color-carrot-50: #FFF3E0;
+  --color-carrot-100: #FFE0B2;
+  --color-carrot-500: #FF6D00;
+  --color-carrot-600: #E65100;
+  --color-carrot-700: #BF360C;
+
+  --color-cherry-500: #D32F2F;
+  --color-cherry-600: #C62828;
+
+  --color-charcoal-800: #262626;
+  --color-charcoal-900: #1E1E24;
+
+  --color-warm-bg: #FFFBF7;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-warm-bg);
+  color: #1E1E24;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-heading);
+}
+
+/* Glassmorphism utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 109, 0, 0.15);
+}
+
+.glass-dark {
+  background: rgba(30, 30, 36, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Custom Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 109, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 109, 0, 0.8);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes spin-roulette {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(1800deg); }
+}
+
+.animate-spin-fast {
+  animation: spin-roulette 4s cubic-bezier(0.15, 0.9, 0.2, 1) forwards;
+}

@@ -1,0 +1,6 @@
+export * from './user.types'
+export * from './prize.types'
+export * from './coupon.types'
+export * from './game.types'
+export * from './admin.types'
+export * from './product.types'

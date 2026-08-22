@@ -1,0 +1,125 @@
+/* Stylesheet para el componente modular de la Ruleta El Inge */
+.roulette-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+}
+
+.roulette-wheel-wrapper {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  margin: 12px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.roulette-canvas {
+  width: 340px;
+  height: 340px;
+  display: block;
+}
+
+.roulette-btn {
+  width: 100%;
+  max-width: 280px;
+  padding: 14px 24px;
+  border-radius: 16px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #FFFFFF;
+  background-color: #2E7D32;
+  border: none;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.35);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.roulette-btn:hover:not(:disabled) {
+  background-color: #1B5E20;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.45);
+}
+
+.roulette-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.roulette-btn:disabled {
+  background-color: #9E9E9E;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.roulette-result-card {
+  width: 100%;
+  margin-top: 20px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: #FFFFFF;
+  border: 3px solid #F56B2A;
+  box-shadow: 0 8px 24px rgba(245, 107, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: rouletteResultPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.roulette-result-emoji {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.roulette-result-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #1E1E24;
+  margin: 0;
+}
+
+.roulette-result-desc {
+  font-size: 13px;
+  color: #4A4A52;
+  margin: 0;
+}
+
+.roulette-result-code {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #FFF3E0;
+  border-radius: 8px;
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 13px;
+  color: #E65100;
+  letter-spacing: 0.05em;
+}
+
+@keyframes rouletteResultPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
