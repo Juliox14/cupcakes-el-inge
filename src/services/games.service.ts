@@ -1,5 +1,10 @@
 import { API_BASE, handleApiResponse } from './api.client'
-import type { PlayGameResult } from '../types'
+import type { PlayGameResult, Prize } from '../types'
+
+export async function getPublicPrizesApi(): Promise<{ prizes: Prize[] }> {
+  const res = await fetch(`${API_BASE}/games/prizes`)
+  return handleApiResponse(res, 'Error al obtener las promociones de la ruleta.')
+}
 
 export async function playGameApi(
   userId: string,

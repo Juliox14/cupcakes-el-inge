@@ -42,6 +42,52 @@ function generateQRToken(): string {
   return `QR-${crypto.randomBytes(16).toString('hex')}`
 }
 
+// Helper para convertir categoría de BD al tier de la app
+function toAppTier(dbTier?: string): string {
+  if (dbTier === 'sin_premio') return 'tier_50_no_prize'
+  if (dbTier === 'alto_valor') return 'tier_10_high_value'
+  return 'tier_40_promo'
+}
+
+// Endpoint público para que cualquier cliente/visitante cargue los premios activos en la ruleta
+gamesRouter.get('/prizes', async (c) => {
+  try {
+    const cached = serverCache.get<any[]>('public_prizes')
+    if (cached) {
+      return c.json({ prizes: cached, cached: true })
+    }
+
+    const { data: prizes, error } = await supabaseServer
+      .from('premios')
+      .select('id, titulo, descripcion, categoria_nivel, peso_probabilidad, color_distintivo, activo, producto_id, fecha_creacion')
+      .eq('activo', true)
+      .order('peso_probabilidad', { ascending: false })
+
+    if (error) {
+      console.error('Error consultando premios en games.ts:', error)
+      return c.json({ error: 'Error al obtener premios.' }, 500)
+    }
+
+    const formatted = (prizes || []).map((p: any) => ({
+      id: p.id,
+      title: p.titulo,
+      description: p.descripcion,
+      tier: toAppTier(p.categoria_nivel),
+      weight: p.peso_probabilidad,
+      badge_color: p.color_distintivo || '#F56B2A',
+      is_active: p.activo,
+      producto_id: p.producto_id || null,
+      created_at: p.fecha_creacion
+    }))
+
+    serverCache.set('public_prizes', formatted, 300)
+    return c.json({ prizes: formatted })
+  } catch (err: any) {
+    console.error('Error en GET /api/games/prizes:', err)
+    return c.json({ error: 'Error al consultar premios activos.' }, 500)
+  }
+})
+
 // Tirada atómica de minijuegos con validación de backend y limitación de tasa
 gamesRouter.post('/play', rateLimiter(20, 60 * 1000, 'Demasiadas jugadas registradas en poco tiempo. Por favor espera unos segundos.'), async (c) => {
   try {

@@ -521,6 +521,7 @@ adminRouter.post('/prizes/category-weights', async (c) => {
 
     serverCache.invalidate('category_weights')
     serverCache.invalidate('admin_prizes')
+    serverCache.invalidate('public_prizes')
     serverCache.invalidate('admin_metrics')
 
     const weights = {
@@ -606,6 +607,7 @@ adminRouter.post('/prizes', async (c) => {
     }
 
     serverCache.invalidate('admin_prizes')
+    serverCache.invalidate('public_prizes')
     serverCache.invalidate('category_weights')
     serverCache.invalidate('admin_metrics')
 
@@ -676,6 +678,7 @@ adminRouter.put('/prizes/:id', async (c) => {
     const body = await c.req.json()
 
     serverCache.invalidate('admin_prizes')
+    serverCache.invalidate('public_prizes')
     serverCache.invalidate('category_weights')
     serverCache.invalidate('admin_metrics')
 
@@ -743,6 +746,7 @@ adminRouter.delete('/prizes/:id', async (c) => {
   try {
     const id = c.req.param('id')
     serverCache.invalidate('admin_prizes')
+    serverCache.invalidate('public_prizes')
     serverCache.invalidate('category_weights')
     serverCache.invalidate('admin_metrics')
 

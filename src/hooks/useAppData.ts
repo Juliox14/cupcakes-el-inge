@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import type { UserProfile, Prize, Coupon, PlayGameResult } from '../types'
 import { 
   getAllClientsApi, 
-  getPrizesApi, 
+  getPublicPrizesApi, 
   checkAuthMeApi, 
   playGameApi 
 } from '../services'
@@ -19,40 +19,44 @@ export function useAppData(
   // Sincronizar catálogo, clientes y sesión activa desde Supabase
   const refreshAppData = useCallback(async () => {
     try {
-      const [uRes, pRes, meRes] = await Promise.allSettled([
-        getAllClientsApi(),
-        getPrizesApi(),
+      const promises: Promise<any>[] = [
+        getPublicPrizesApi(),
         checkAuthMeApi()
-      ])
+      ]
+
+      // Solo consultar listado general de clientes si se tiene rol de administrador
+      if (currentUser.role === 'admin') {
+        promises.push(getAllClientsApi())
+      }
+
+      const results = await Promise.allSettled(promises)
+      const pRes = results[0]
+      const meRes = results[1]
+      const uRes = results[2]
 
       // 1. Sincronizar sesión activa por cookie JWT si existe
-      if (meRes.status === 'fulfilled' && meRes.value.authenticated && meRes.value.user) {
+      if (meRes && meRes.status === 'fulfilled' && meRes.value.authenticated && meRes.value.user) {
         setCurrentUser(prev => ({ ...prev, ...meRes.value.user }))
         if (meRes.value.coupons) {
           setCoupons(meRes.value.coupons)
         }
       }
 
-      // 2. Cargar clientes de Supabase y refrescar usuario activo
-      if (uRes.status === 'fulfilled' && uRes.value.users) {
-        setAllUsers(uRes.value.users)
-        setCurrentUser(prev => {
-          if (prev.id === 'guest') return prev
-          const matching = uRes.value.users.find((u: any) => u.id === prev.id || (u.phone && u.phone === prev.phone))
-          return matching ? { ...prev, ...matching } : prev
-        })
+      // 2. Cargar catálogo de promociones y premios de Supabase (Público)
+      if (pRes && pRes.status === 'fulfilled' && pRes.value.prizes) {
+        setPrizes(pRes.value.prizes)
       }
 
-      // 3. Cargar catálogo de premios de Supabase
-      if (pRes.status === 'fulfilled' && pRes.value.prizes) {
-        setPrizes(pRes.value.prizes)
+      // 3. Cargar clientes de Supabase si es administrador
+      if (uRes && uRes.status === 'fulfilled' && uRes.value.users) {
+        setAllUsers(uRes.value.users)
       }
     } catch (err) {
       console.error('Error al sincronizar con Supabase:', err)
     } finally {
       setIsLoading(false)
     }
-  }, [setCurrentUser])
+  }, [currentUser.role, setCurrentUser])
 
   useEffect(() => {
     refreshAppData()
