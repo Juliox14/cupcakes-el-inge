@@ -9,17 +9,16 @@ import {
   ChevronRight,
   Eye,
   QrCode,
-  User,
-  Phone,
-  Ticket,
   ArrowUpDown,
   ArrowUp,
   ArrowDown
 } from 'lucide-react'
-import { SlideOver } from './SlideOver'
 import type { UserProfile, Coupon, ProductoConCosto } from '../../types'
-import { registerPurchaseApi, getProductsApi } from '../../lib/api'
+import { registerPurchaseApi, getProductsApi, grantSpinsApi } from '../../lib/api'
 import { toast } from '../../context/ToastContext'
+import { ClientPurchaseSlideOver } from './clients/ClientPurchaseSlideOver'
+import { ClientSpinsSlideOver } from './clients/ClientSpinsSlideOver'
+import { ClientDetailSlideOver } from './clients/ClientDetailSlideOver'
 
 interface AdminClientsTableProps {
   clients: UserProfile[]
@@ -61,6 +60,11 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
     }
   }
 
+  const getSortIcon = (field: ClientSortField) => {
+    if (sortField !== field) return <ArrowUpDown size={13} className="text-gray-400" />
+    return sortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
+  }
+
   // Productos disponibles para venta
   const [availableProducts, setAvailableProducts] = useState<ProductoConCosto[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string>('')
@@ -69,10 +73,17 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
   const [isPurchaseSlideOverOpen, setIsPurchaseSlideOverOpen] = useState(false)
   const [purchaseMode, setPurchaseMode] = useState<'registered' | 'unregistered'>('registered')
   const [selectedClientForPurchase, setSelectedClientForPurchase] = useState<UserProfile | null>(null)
+  const [selectedCouponId, setSelectedCouponId] = useState<string>('')
   const [unregisteredName, setUnregisteredName] = useState('')
   const [cupcakesQty, setCupcakesQty] = useState<number>(2)
   const [registering, setRegistering] = useState(false)
   const [purchaseMsg, setPurchaseMsg] = useState<string | null>(null)
+
+  // Slide-Over: Añadir Tiradas Manuales a Cliente
+  const [isSpinsSlideOverOpen, setIsSpinsSlideOverOpen] = useState(false)
+  const [selectedClientForSpins, setSelectedClientForSpins] = useState<UserProfile | null>(null)
+  const [spinsAmountToAdd, setSpinsAmountToAdd] = useState<number>(1)
+  const [grantingSpins, setGrantingSpins] = useState(false)
 
   // Cargar catálogo de productos al montar
   React.useEffect(() => {
@@ -89,6 +100,83 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
   // Slide-Over: Detalle de Cliente
   const [isDetailSlideOverOpen, setIsDetailSlideOverOpen] = useState(false)
   const [selectedClientDetail, setSelectedClientDetail] = useState<UserProfile | null>(null)
+
+  // Función para otorgar tiradas manuales
+  const handleGrantSpinsSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!selectedClientForSpins || spinsAmountToAdd === 0) return
+
+    setGrantingSpins(true)
+    const targetClient = selectedClientForSpins
+    const amount = spinsAmountToAdd
+
+    // Actualización optimista instantánea en UI
+    setLocalClients(prev =>
+      prev.map(c =>
+        c.id === targetClient.id
+          ? { ...c, spins_available: Math.max(0, (c.spins_available || 0) + amount) }
+          : c
+      )
+    )
+
+    if (selectedClientDetail && selectedClientDetail.id === targetClient.id) {
+      setSelectedClientDetail(prev =>
+        prev ? { ...prev, spins_available: Math.max(0, (prev.spins_available || 0) + amount) } : null
+      )
+    }
+
+    try {
+      const res = await grantSpinsApi(targetClient.id, amount)
+      toast.success(
+        '¡Tiros Actualizados!',
+        res.message || `Se acreditaron ${amount > 0 ? `+${amount}` : amount} tiros a ${targetClient.full_name}.`
+      )
+      setIsSpinsSlideOverOpen(false)
+      onRefresh()
+    } catch (err: any) {
+      toast.error('Error al actualizar tiros', err.message || 'No se pudieron asignar los tiros.')
+      onRefresh()
+    } finally {
+      setGrantingSpins(false)
+    }
+  }
+
+  // Otorgar giros rápidos (+1, +2, +5) con un solo tap
+  const handleQuickAddSpins = async (client: UserProfile, amount: number) => {
+    // Actualización optimista instantánea
+    setLocalClients(prev =>
+      prev.map(c =>
+        c.id === client.id
+          ? { ...c, spins_available: Math.max(0, (c.spins_available || 0) + amount) }
+          : c
+      )
+    )
+
+    if (selectedClientDetail && selectedClientDetail.id === client.id) {
+      setSelectedClientDetail(prev =>
+        prev ? { ...prev, spins_available: Math.max(0, (prev.spins_available || 0) + amount) } : null
+      )
+    }
+
+    try {
+      const res = await grantSpinsApi(client.id, amount)
+      toast.success(
+        '¡Tiros Asignados!',
+        res.message || `+${amount} tiro${amount === 1 ? '' : 's'} asignado${amount === 1 ? '' : 's'} a ${client.full_name}.`
+      )
+      onRefresh()
+    } catch (err: any) {
+      toast.error('Error al asignar tiros', err.message || 'No se pudieron actualizar los tiros.')
+      onRefresh()
+    }
+  }
+
+  const handleOpenSpinsSlideOver = (client?: UserProfile) => {
+    const target = client || (filteredAndSortedClients.length > 0 ? filteredAndSortedClients[0] : null)
+    setSelectedClientForSpins(target)
+    setSpinsAmountToAdd(1)
+    setIsSpinsSlideOverOpen(true)
+  }
 
   // Filtrado y ordenamiento de clientes
   const filteredAndSortedClients = useMemo(() => {
@@ -170,21 +258,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
 
     const selProduct = availableProducts.find(p => p.id === selectedProductId)
     const unitPrice = selProduct ? Number(selProduct.precio_venta || 20) : 20
-    const totalAmount = cupcakesQty * unitPrice
-
-    // Actualización optimista inmediata en 0ms
-    if (!isAnon && targetUserId) {
-      setLocalClients(prev => prev.map(c => {
-        if (c.id === targetUserId) {
-          return {
-            ...c,
-            spins_available: (c.spins_available || 0) + Math.floor(cupcakesQty / 2),
-            total_cupcakes_purchased: (c.total_cupcakes_purchased || 0) + cupcakesQty
-          }
-        }
-        return c
-      }))
-    }
+    const regularAmount = cupcakesQty * unitPrice
 
     try {
       const res = await registerPurchaseApi({
@@ -193,15 +267,32 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
         producto_id: selectedProductId || undefined,
         cupcakes_qty: cupcakesQty,
         unit_price: unitPrice,
-        total_amount: totalAmount,
-        spins_granted: isAnon ? 0 : Math.floor(cupcakesQty / 2),
+        total_amount: regularAmount, // El backend ajusta automáticamente según el cupón
+        coupon_id: (!isAnon && selectedCouponId) ? selectedCouponId : undefined,
+        spins_granted: undefined as any, // El backend aplica la regla exacta de 0 tiros para promos
         admin_id: adminUser?.id || '00000000-0000-0000-0000-000000000001'
       })
       const spinsGranted = res.spins_granted !== undefined ? res.spins_granted : (isAnon ? 0 : Math.floor(cupcakesQty / 2))
+      const chargedAmount = res.purchase?.monto_total ?? regularAmount
+      const discount = res.discount_amount ?? 0
+
+      // Actualización optimista de clientes
+      if (!isAnon && targetUserId) {
+        setLocalClients(prev => prev.map(c => {
+          if (c.id === targetUserId) {
+            return {
+              ...c,
+              spins_available: (c.spins_available || 0) + spinsGranted,
+              total_cupcakes_purchased: (c.total_cupcakes_purchased || 0) + cupcakesQty
+            }
+          }
+          return c
+        }))
+      }
       
       const finalMsg = isAnon 
-        ? `¡Venta directa registrada exitosamente! (${cupcakesQty} cupcakes - $${totalAmount} MXN).`
-        : `¡Compra registrada! Se acreditaron +${spinsGranted} jugada(s) a ${targetName}.`
+        ? `¡Venta directa registrada exitosamente! (${cupcakesQty} cupcakes - $${chargedAmount} MXN).`
+        : `¡Compra registrada! Cobrado: $${chargedAmount} MXN${discount > 0 ? ` (Promo: -$${discount})` : ''} · +${spinsGranted} jugada(s) a ${targetName}.`
       
       setPurchaseMsg(finalMsg)
       toast.success(finalMsg)
@@ -209,6 +300,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
       setTimeout(() => {
         setIsPurchaseSlideOverOpen(false)
         setPurchaseMsg(null)
+        setSelectedCouponId('')
       }, 1000)
     } catch (err: any) {
       const errMsg = `Error: ${err.message}`
@@ -244,7 +336,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
-              className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-semibold text-xs rounded-md shadow-2xs flex items-center gap-2 transition"
+              className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-semibold text-xs rounded-md shadow-2xs flex items-center gap-2 transition cursor-pointer"
             >
               <QrCode size={16} className="text-[#F56B2A]" />
               <span>Escanear QR</span>
@@ -252,8 +344,16 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
           )}
 
           <button
+            onClick={() => handleOpenSpinsSlideOver()}
+            className="px-4 py-2 bg-linear-to-r from-[#F56B2A] to-carrot-600 hover:from-[#EA580C] hover:to-[#C2410C] text-white font-semibold text-xs rounded-md shadow-sm flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Sparkles size={15} />
+            <span>+ Añadir Giros</span>
+          </button>
+
+          <button
             onClick={() => handleOpenPurchaseSlideOver()}
-            className="px-4 py-2 bg-[#0A2540] hover:bg-[#081C30] text-white font-semibold text-xs rounded-md shadow-sm flex items-center gap-2 transition"
+            className="px-4 py-2 bg-[#0A2540] hover:bg-[#081C30] text-white font-semibold text-xs rounded-md shadow-sm flex items-center gap-2 transition cursor-pointer"
           >
             <Plus size={16} />
             <span>Registrar Compra</span>
@@ -278,93 +378,69 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
         </div>
       </div>
 
-      {/* 3. TABLA DE CLIENTES (Estilo SIPAD Exacto) */}
+      {/* 3. TABLA PRINCIPAL DE CLIENTES */}
       <div className="bg-white rounded-md border border-gray-200 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            {/* Encabezado SIPAD */}
-            <thead className="bg-[#F8FAFC] text-gray-600 text-[11px] uppercase tracking-wider border-b border-gray-200 font-bold select-none">
-              <tr>
-                <th className="py-3.5 px-4 w-10 text-center">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-gray-200 text-gray-700 font-bold uppercase tracking-wider text-[11px]">
+                <th className="py-3 px-4 w-10 text-center">
                   <input type="checkbox" className="rounded-sm border-gray-300 text-[#0A2540]" />
                 </th>
-                
                 <th 
-                  onClick={() => handleSort('id')} 
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition group"
+                  onClick={() => handleSort('id')}
+                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition select-none"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>CLAVE</span>
-                    {sortField === 'id' ? (
-                      sortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                    ) : (
-                      <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                    )}
+                  <div className="flex items-center gap-1">
+                    <span>Clave (IngeID)</span>
+                    <span className="text-gray-400">{getSortIcon('id')}</span>
                   </div>
                 </th>
-
                 <th 
-                  onClick={() => handleSort('full_name')} 
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition group"
+                  onClick={() => handleSort('full_name')}
+                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition select-none"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>NOMBRE DEL CLIENTE</span>
-                    {sortField === 'full_name' ? (
-                      sortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                    ) : (
-                      <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                    )}
+                  <div className="flex items-center gap-1">
+                    <span>Nombre</span>
+                    <span className="text-gray-400">{getSortIcon('full_name')}</span>
                   </div>
                 </th>
-
                 <th 
-                  onClick={() => handleSort('phone')} 
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition group"
+                  onClick={() => handleSort('phone')}
+                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition select-none"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>TELÉFONO (WHATSAPP)</span>
-                    {sortField === 'phone' ? (
-                      sortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                    ) : (
-                      <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                    )}
+                  <div className="flex items-center gap-1">
+                    <span>Teléfono</span>
+                    <span className="text-gray-400">{getSortIcon('phone')}</span>
                   </div>
                 </th>
-
                 <th 
-                  onClick={() => handleSort('spins_available')} 
-                  className="py-3.5 px-4 text-center cursor-pointer hover:bg-slate-200/60 transition group"
+                  onClick={() => handleSort('spins_available')}
+                  className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100 transition select-none"
                 >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>TIROS RULETA</span>
-                    {sortField === 'spins_available' ? (
-                      sortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                    ) : (
-                      <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                    )}
+                  <div className="flex items-center justify-center gap-1">
+                    <span>Tiros Ruleta</span>
+                    <span className="text-gray-400">{getSortIcon('spins_available')}</span>
                   </div>
                 </th>
-
                 <th 
-                  onClick={() => handleSort('total_cupcakes_purchased')} 
-                  className="py-3.5 px-4 text-center cursor-pointer hover:bg-slate-200/60 transition group"
+                  onClick={() => handleSort('total_cupcakes_purchased')}
+                  className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100 transition select-none"
                 >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>CUPCAKES</span>
-                    {sortField === 'total_cupcakes_purchased' ? (
-                      sortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                    ) : (
-                      <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                    )}
+                  <div className="flex items-center justify-center gap-1">
+                    <span>Cupcakes Totales</span>
+                    <span className="text-gray-400">{getSortIcon('total_cupcakes_purchased')}</span>
                   </div>
                 </th>
-
-                <th className="py-3.5 px-4 text-center">ESTADO</th>
-                <th className="py-3.5 px-4 text-right">ACCIONES</th>
+                <th className="py-3 px-4 text-center">
+                  <span>Estado</span>
+                </th>
+                <th className="py-3 px-4 text-right">
+                  <span>Acciones</span>
+                </th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
+            <tbody className="divide-y divide-gray-100">
               {paginatedClients.length > 0 ? (
                 paginatedClients.map((client) => {
                   const ingeId = client.phone
@@ -381,17 +457,14 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                         <input type="checkbox" className="rounded-sm border-gray-300 text-[#0A2540]" />
                       </td>
 
-                      {/* Clave / IngeID */}
                       <td className="py-3.5 px-4 font-mono font-bold text-[#0A2540]">
                         {ingeId}
                       </td>
 
-                      {/* Nombre */}
                       <td className="py-3.5 px-4 font-semibold text-gray-900">
                         {client.full_name}
                       </td>
 
-                      {/* Teléfono WhatsApp */}
                       <td className="py-3.5 px-4 font-mono">
                         <a
                           href={waUrl}
@@ -404,12 +477,25 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                         </a>
                       </td>
 
-                      {/* Tiros Ruleta */}
+                      {/* Tiros Ruleta con botón de ajuste rápido */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className="inline-flex items-center gap-1 font-bold text-[#E65100]">
-                          <Sparkles size={12} />
-                          {client.spins_available}
-                        </span>
+                        <div className="inline-flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenSpinsSlideOver(client)}
+                            className="inline-flex items-center gap-1 font-bold text-carrot-600 px-2 py-0.5 rounded-full hover:bg-orange-50 transition cursor-pointer"
+                            title="Modificar tiros de este cliente"
+                          >
+                            <Sparkles size={12} />
+                            <span>{client.spins_available}</span>
+                          </button>
+                          <button
+                            onClick={() => handleQuickAddSpins(client, 1)}
+                            className="w-5 h-5 rounded-full bg-orange-100 hover:bg-orange-200 text-carrot-600 flex items-center justify-center text-[11px] font-black transition cursor-pointer shadow-2xs"
+                            title="Añadir +1 giro rápido"
+                          >
+                            +
+                          </button>
+                        </div>
                       </td>
 
                       {/* Cupcakes Totales */}
@@ -417,7 +503,6 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                         {client.total_cupcakes_purchased} pcs
                       </td>
 
-                      {/* Estado SIPAD (Pill Verde Activo) */}
                       <td className="py-3.5 px-4 text-center">
                         <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#DCFCE7] text-[#15803D] border border-green-200 inline-block">
                           Activo
@@ -428,15 +513,22 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
                           <button
+                            onClick={() => handleOpenSpinsSlideOver(client)}
+                            className="p-1.5 rounded-md text-amber-600 hover:bg-amber-50 transition cursor-pointer"
+                            title="Añadir Tiradas Manuales"
+                          >
+                            <Sparkles size={15} />
+                          </button>
+                          <button
                             onClick={() => handleOpenPurchaseSlideOver(client)}
-                            className="p-1 rounded-md text-orange-600 hover:bg-orange-50 transition"
+                            className="p-1.5 rounded-md text-orange-600 hover:bg-orange-50 transition cursor-pointer"
                             title="Registrar Compra a Cliente"
                           >
                             <ShoppingBag size={15} />
                           </button>
                           <button
                             onClick={() => handleOpenDetailSlideOver(client)}
-                            className="p-1 rounded-md text-slate-500 hover:bg-slate-100 transition"
+                            className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 transition cursor-pointer"
                             title="Ver Detalle"
                           >
                             <Eye size={15} />
@@ -457,21 +549,20 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
           </table>
         </div>
 
-        {/* 4. FOOTER PAGINACIÓN (Estilo SIPAD) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 bg-[#F8FAFC] border-t border-gray-200 text-xs text-gray-600">
+        {/* Paginación */}
+        <div className="p-3 border-t border-gray-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2">
-            <span>Líneas por página:</span>
+            <span className="text-gray-500">Filas por página:</span>
             <select
               value={rowsPerPage}
               onChange={(e) => {
                 setRowsPerPage(Number(e.target.value))
                 setCurrentPage(1)
               }}
-              className="px-2 py-1 bg-white border border-gray-300 rounded-md text-xs font-semibold"
+              className="px-2 py-1 bg-white border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
             >
-              <option value={5}>5</option>
               <option value={10}>10</option>
-              <option value={25}>25</option>
+              <option value={20}>20</option>
               <option value={50}>50</option>
             </select>
           </div>
@@ -486,17 +577,17 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
               <span>Anterior</span>
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button
-                key={num}
-                onClick={() => setCurrentPage(num)}
-                className={`w-6 h-6 rounded-md font-bold text-xs ${
-                  currentPage === num
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={`w-7 h-7 rounded-md font-bold ${
+                  currentPage === p
                     ? 'bg-[#0A2540] text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                {num}
+                {p}
               </button>
             ))}
 
@@ -509,258 +600,55 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
               <ChevronRight size={13} />
             </button>
           </div>
-
-          <div className="text-gray-400">
-            Exhibiendo {filteredAndSortedClients.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0}-
-            {Math.min(currentPage * rowsPerPage, filteredAndSortedClients.length)} de {filteredAndSortedClients.length} registros
-          </div>
         </div>
       </div>
 
-      {/* ===================================================================== */}
-      {/* SLIDE-OVER: REGISTRAR COMPRA A CLIENTE (Estilo SIPAD Imagen 2)       */}
-      {/* ===================================================================== */}
-      <SlideOver
+      {/* SlideOver: Registrar Compra a Cliente */}
+      <ClientPurchaseSlideOver
         isOpen={isPurchaseSlideOverOpen}
         onClose={() => setIsPurchaseSlideOverOpen(false)}
-        title="Registrar Compra a Cliente"
-        icon={<ShoppingBag size={20} />}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setIsPurchaseSlideOverOpen(false)}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 font-semibold text-xs hover:bg-gray-50 transition"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleRegisterPurchase}
-              disabled={registering || !selectedClientForPurchase}
-              className="px-5 py-2 rounded-md bg-[#0A2540] hover:bg-[#081C30] text-white font-bold text-xs transition shadow-sm"
-            >
-              {registering ? 'Registrando...' : 'Confirmar Compra'}
-            </button>
-          </>
-        }
-      >
-        <form onSubmit={handleRegisterPurchase} className="space-y-4">
-          {/* Tipo de Venta */}
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">
-              Tipo de Venta
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPurchaseMode('registered')}
-                className={`py-2 rounded-md border text-xs font-bold transition ${
-                  purchaseMode === 'registered'
-                    ? 'bg-[#0A2540] text-white border-[#0A2540]'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                👤 Venta a Cliente
-              </button>
-              <button
-                type="button"
-                onClick={() => setPurchaseMode('unregistered')}
-                className={`py-2 rounded-md border text-xs font-bold transition ${
-                  purchaseMode === 'unregistered'
-                    ? 'bg-[#0A2540] text-white border-[#0A2540]'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                🧁 Venta Directa
-              </button>
-            </div>
-          </div>
+        purchaseMode={purchaseMode}
+        setPurchaseMode={setPurchaseMode}
+        selectedClientForPurchase={selectedClientForPurchase}
+        setSelectedClientForPurchase={setSelectedClientForPurchase}
+        clients={clients}
+        clientCoupons={allCoupons}
+        selectedCouponId={selectedCouponId}
+        setSelectedCouponId={setSelectedCouponId}
+        unregisteredName={unregisteredName}
+        setUnregisteredName={setUnregisteredName}
+        availableProducts={availableProducts}
+        selectedProductId={selectedProductId}
+        setSelectedProductId={setSelectedProductId}
+        cupcakesQty={cupcakesQty}
+        setCupcakesQty={setCupcakesQty}
+        registering={registering}
+        purchaseMsg={purchaseMsg}
+        onSubmit={handleRegisterPurchase}
+      />
 
-          {/* Cliente Registrado */}
-          {purchaseMode === 'registered' ? (
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Seleccionar Cliente
-              </label>
-              <select
-                value={selectedClientForPurchase?.id || ''}
-                onChange={(e) => {
-                  const found = clients.find(c => c.id === e.target.value)
-                  if (found) setSelectedClientForPurchase(found)
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-              >
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.full_name} ({c.phone})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Referencia / Lugar de Venta (Opcional)
-              </label>
-              <input
-                type="text"
-                value={unregisteredName}
-                onChange={(e) => setUnregisteredName(e.target.value)}
-                placeholder="Ej. Venta en Fac. de Ingeniería, Encargo, etc."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-medium focus:outline-none focus:border-[#0A2540]"
-              />
-            </div>
-          )}
+      {/* SlideOver: Añadir Tiradas Manuales a Cliente */}
+      <ClientSpinsSlideOver
+        isOpen={isSpinsSlideOverOpen}
+        onClose={() => setIsSpinsSlideOverOpen(false)}
+        selectedClientForSpins={selectedClientForSpins}
+        setSelectedClientForSpins={setSelectedClientForSpins}
+        clients={filteredAndSortedClients}
+        spinsAmountToAdd={spinsAmountToAdd}
+        setSpinsAmountToAdd={setSpinsAmountToAdd}
+        grantingSpins={grantingSpins}
+        onSubmit={handleGrantSpinsSubmit}
+      />
 
-          {/* Selector de Producto */}
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">
-              Producto a Vender
-            </label>
-            <select
-              value={selectedProductId}
-              onChange={(e) => setSelectedProductId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-            >
-              {availableProducts.length > 0 ? (
-                availableProducts.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} — ${p.precio_venta}.00 MXN / pc
-                  </option>
-                ))
-              ) : (
-                <option value="">Cupcake de Zanahoria Artesanal ($20.00 MXN)</option>
-              )}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">
-              Cantidad de Piezas
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={24}
-              value={cupcakesQty}
-              onChange={(e) => setCupcakesQty(Number(e.target.value))}
-              placeholder="Ej. 2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-bold focus:outline-none focus:border-[#0A2540]"
-            />
-          </div>
-
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 2, 4, 6].map(qty => (
-              <button
-                key={qty}
-                type="button"
-                onClick={() => setCupcakesQty(qty)}
-                className={`py-1.5 rounded-md border text-xs font-bold transition ${
-                  cupcakesQty === qty
-                    ? 'bg-[#0A2540] text-white border-[#0A2540]'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {qty} pcs
-              </button>
-            ))}
-          </div>
-
-          {(() => {
-            const selProd = availableProducts.find(p => p.id === selectedProductId)
-            const unitP = selProd ? Number(selProd.precio_venta || 20) : 20
-            const total = cupcakesQty * unitP
-            const spins = Math.floor(cupcakesQty / 2)
-
-            return (
-              <div className="p-3 bg-slate-50 border border-gray-200 rounded-md space-y-1 text-xs">
-                <div className="flex justify-between text-gray-600">
-                  <span>Precio unitario (${unitP}.00 MXN / pc):</span>
-                  <strong className="text-gray-900 font-mono">${total}.00 MXN</strong>
-                </div>
-                <div className="flex justify-between text-[#E65100] font-bold">
-                  <span>Tiros a otorgar (1 x cada 2):</span>
-                  <span>+{spins} jugada(s)</span>
-                </div>
-              </div>
-            )
-          })()}
-
-          {purchaseMsg && (
-            <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-md text-xs font-bold">
-              {purchaseMsg}
-            </div>
-          )}
-        </form>
-      </SlideOver>
-
-      {/* ===================================================================== */}
-      {/* SLIDE-OVER: DETALLES DE CLIENTE E HISTORIAL (Estilo SIPAD)            */}
-      {/* ===================================================================== */}
-      <SlideOver
+      {/* SlideOver: Detalles del Cliente e Historial */}
+      <ClientDetailSlideOver
         isOpen={isDetailSlideOverOpen}
         onClose={() => setIsDetailSlideOverOpen(false)}
-        title="Detalles del Cliente"
-        icon={<User size={20} />}
-      >
-        {selectedClientDetail && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
-              <div className="w-10 h-10 rounded-full bg-[#16A34A] text-white flex items-center justify-center font-bold text-sm">
-                {selectedClientDetail.full_name.charAt(0)}
-              </div>
-              <div>
-                <h4 className="font-bold text-sm text-gray-900">{selectedClientDetail.full_name}</h4>
-                <p className="text-xs text-gray-500 font-mono flex items-center gap-1">
-                  <Phone size={12} /> {selectedClientDetail.phone}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-                <span className="text-gray-500 block text-[10px] uppercase">Tiros Disponibles</span>
-                <strong className="text-base text-[#F56B2A] font-black">
-                  {selectedClientDetail.spins_available}
-                </strong>
-              </div>
-              <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
-                <span className="text-gray-500 block text-[10px] uppercase">Cupcakes Totales</span>
-                <strong className="text-base text-gray-900 font-black">
-                  {selectedClientDetail.total_cupcakes_purchased} pcs
-                </strong>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <h5 className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
-                <Ticket size={14} className="text-[#F56B2A]" />
-                <span>Cupones del Cliente ({clientCoupons.length})</span>
-              </h5>
-              {clientCoupons.length > 0 ? (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {clientCoupons.map(c => (
-                    <div key={c.id} className="p-2.5 rounded-md border border-gray-200 bg-gray-50 text-xs flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-gray-800">{c.prize?.title || 'Cupón'}</p>
-                        <p className="font-mono text-[10px] text-gray-500">{c.code}</p>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        c.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {c.status === 'active' ? 'Activo' : 'Canjeado'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400 italic">Sin cupones activos.</p>
-              )}
-            </div>
-          </div>
-        )}
-      </SlideOver>
+        selectedClientDetail={selectedClientDetail}
+        clientCoupons={clientCoupons}
+        onQuickAddSpins={handleQuickAddSpins}
+        onOpenSpinsSlideOver={handleOpenSpinsSlideOver}
+      />
     </div>
   )
 }

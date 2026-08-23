@@ -6,22 +6,12 @@ import {
   Search, 
   ChevronLeft, 
   ChevronRight, 
-  Package,
   Settings,
-  SlidersHorizontal,
-  Sparkles,
-  CheckCircle2,
-  AlertTriangle,
-  X,
-  Gift,
-  Tag,
-  HelpCircle,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Cake
 } from 'lucide-react'
-import { SlideOver } from './SlideOver'
 import type { Prize, ProductoConCosto } from '../../types'
 import { 
   createPrizeApi, 
@@ -32,6 +22,9 @@ import {
   getProductsApi
 } from '../../lib/api'
 import { toast } from '../../context/ToastContext'
+import { PromotionsStatsCards } from './promotions/PromotionsStatsCards'
+import { CategoryWeightsModal } from './promotions/CategoryWeightsModal'
+import { PromotionFormSlideOver } from './promotions/PromotionFormSlideOver'
 
 interface AdminPromotionsManagerProps {
   prizes: Prize[]
@@ -88,6 +81,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [tier, setTier] = useState<Prize['tier']>('tier_40_promo')
+  const [tipoBeneficio, setTipoBeneficio] = useState<Prize['tipo_beneficio']>('descuento_fijo')
+  const [precioPromocional, setPrecioPromocional] = useState<number | ''>('')
+  const [descuentoMonto, setDescuentoMonto] = useState<number | ''>('')
+  const [piezasAmparadas, setPiezasAmparadas] = useState<number | ''>(1)
   const [isActive, setIsActive] = useState<boolean>(true)
   const [badgeColor, setBadgeColor] = useState('#F56B2A')
   
@@ -213,6 +210,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     setTitle('')
     setDescription('')
     setTier('tier_40_promo')
+    setTipoBeneficio('descuento_fijo')
+    setPrecioPromocional('')
+    setDescuentoMonto('')
+    setPiezasAmparadas(1)
     setProductId('')
     setIsActive(true)
     setBadgeColor('#F56B2A')
@@ -226,6 +227,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     setTitle(prize.title)
     setDescription(prize.description)
     setTier(prize.tier)
+    setTipoBeneficio(prize.tipo_beneficio || (prize.tier === 'tier_50_no_prize' ? 'sin_premio' : 'descuento_fijo'))
+    setPrecioPromocional(prize.precio_promocional !== undefined && prize.precio_promocional !== null ? prize.precio_promocional : '')
+    setDescuentoMonto(prize.descuento_monto !== undefined && prize.descuento_monto !== null ? prize.descuento_monto : '')
+    setPiezasAmparadas(prize.piezas_amparadas !== undefined && prize.piezas_amparadas !== null ? prize.piezas_amparadas : 1)
     setProductId(prize.producto_id || '')
     setIsActive(prize.is_active)
     setBadgeColor(prize.badge_color || '#F56B2A')
@@ -244,6 +249,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     const finalProductId = (tier === 'tier_50_no_prize' || !productId) ? null : productId
     const linkedProd = availableProducts.find(p => p.id === finalProductId)
 
+    const finalPrecioPromo = precioPromocional === '' ? null : Number(precioPromocional)
+    const finalDescuento = descuentoMonto === '' ? 0 : Number(descuentoMonto)
+    const finalPiezas = piezasAmparadas === '' ? 1 : Number(piezasAmparadas)
+
     // Actualización optimista inmediata
     if (editingPrize) {
       setLocalPrizes(prev => prev.map(p => p.id === editingPrize.id ? {
@@ -251,6 +260,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
         title,
         description: description || title,
         tier,
+        tipo_beneficio: tipoBeneficio,
+        precio_promocional: finalPrecioPromo,
+        descuento_monto: finalDescuento,
+        piezas_amparadas: finalPiezas,
         producto_id: finalProductId,
         producto_nombre: linkedProd ? linkedProd.nombre : null,
         badge_color: badgeColor,
@@ -263,6 +276,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
         title,
         description: description || title,
         tier,
+        tipo_beneficio: tipoBeneficio,
+        precio_promocional: finalPrecioPromo,
+        descuento_monto: finalDescuento,
+        piezas_amparadas: finalPiezas,
         producto_id: finalProductId,
         producto_nombre: linkedProd ? linkedProd.nombre : null,
         badge_color: badgeColor,
@@ -280,6 +297,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
           title,
           description: description || title,
           tier,
+          tipo_beneficio: tipoBeneficio,
+          precio_promocional: finalPrecioPromo,
+          descuento_monto: finalDescuento,
+          piezas_amparadas: finalPiezas,
           producto_id: finalProductId,
           badge_color: badgeColor,
           is_active: isActive,
@@ -290,6 +311,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
           title,
           description: description || title,
           tier,
+          tipo_beneficio: tipoBeneficio,
+          precio_promocional: finalPrecioPromo,
+          descuento_monto: finalDescuento,
+          piezas_amparadas: finalPiezas,
           producto_id: finalProductId,
           badge_color: badgeColor,
         })
@@ -400,7 +425,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
   }
 
   const predicted = getPredictedCategoryWeight(tier)
-  const sumWeights = Number(categoryWeights.sin_premio || 0) + Number(categoryWeights.promocion || 0) + Number(categoryWeights.alto_valor || 0)
 
   return (
     <div className="space-y-6">
@@ -437,79 +461,10 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
       </div>
 
       {/* 2. RESUMEN DE PROBABILIDADES POR CATEGORÍA EN TIEMPO REAL */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Categoría: Sin Premio */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-gray-100 text-gray-600">
-              <HelpCircle size={20} />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Sin Premio</span>
-              <strong className="text-gray-900 text-sm font-bold">
-                {activePrizesCount.tier_50_no_prize} {activePrizesCount.tier_50_no_prize === 1 ? 'opción' : 'opciones'}
-              </strong>
-              <span className="text-[11px] text-gray-500 block">
-                {activePrizesCount.tier_50_no_prize > 0 
-                  ? `~${Math.round((categoryWeights.sin_premio / activePrizesCount.tier_50_no_prize) * 10) / 10}% por opción`
-                  : 'Sin opciones activas'}
-              </span>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-xl font-black text-gray-800 font-mono">{categoryWeights.sin_premio}%</span>
-            <span className="text-[10px] text-gray-400 block">Total Cat.</span>
-          </div>
-        </div>
-
-        {/* Categoría: Promociones & Descuentos */}
-        <div className="bg-white p-4 rounded-xl border border-orange-200 bg-orange-50/20 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-orange-100 text-[#F56B2A]">
-              <Tag size={20} />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-orange-800 uppercase tracking-wider block">Promociones & Descuentos</span>
-              <strong className="text-gray-900 text-sm font-bold">
-                {activePrizesCount.tier_40_promo} {activePrizesCount.tier_40_promo === 1 ? 'promoción' : 'promociones'}
-              </strong>
-              <span className="text-[11px] text-gray-500 block">
-                {activePrizesCount.tier_40_promo > 0 
-                  ? `~${Math.round((categoryWeights.promocion / activePrizesCount.tier_40_promo) * 10) / 10}% c/u`
-                  : 'Sin promociones activas'}
-              </span>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-xl font-black text-[#F56B2A] font-mono">{categoryWeights.promocion}%</span>
-            <span className="text-[10px] text-orange-600 block">Total Cat.</span>
-          </div>
-        </div>
-
-        {/* Categoría: Alto Valor / Gratis */}
-        <div className="bg-white p-4 rounded-xl border border-red-200 bg-red-50/20 shadow-2xs flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-red-100 text-red-600">
-              <Gift size={20} />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-red-800 uppercase tracking-wider block">Alto Valor (Gratis)</span>
-              <strong className="text-gray-900 text-sm font-bold">
-                {activePrizesCount.tier_10_high_value} {activePrizesCount.tier_10_high_value === 1 ? 'premio' : 'premios'}
-              </strong>
-              <span className="text-[11px] text-gray-500 block">
-                {activePrizesCount.tier_10_high_value > 0 
-                  ? `~${Math.round((categoryWeights.alto_valor / activePrizesCount.tier_10_high_value) * 10) / 10}% c/u`
-                  : 'Sin premios activos'}
-              </span>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-xl font-black text-red-600 font-mono">{categoryWeights.alto_valor}%</span>
-            <span className="text-[10px] text-red-500 block">Total Cat.</span>
-          </div>
-        </div>
-      </div>
+      <PromotionsStatsCards
+        activePrizesCount={activePrizesCount}
+        categoryWeights={categoryWeights}
+      />
 
       {/* 3. BARRA DE BÚSQUEDA */}
       <div className="bg-white p-3 rounded-md border border-gray-200 shadow-2xs">
@@ -797,328 +752,51 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
         </div>
       </div>
 
-      {/* ===================================================================== */}
-      {/* MODAL: CONFIGURACIÓN DE PROBABILIDADES POR CATEGORÍA (ENGRANE)       */}
-      {/* ===================================================================== */}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 space-y-5 animate-scale-up">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-[#0A2540] text-amber-400">
-                  <SlidersHorizontal size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base text-[#0A2540]">
-                    Probabilidades por Categoría
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    El peso total se dividirá equitativamente entre las opciones activas de cada categoría.
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setIsCategoryModalOpen(false)}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      {/* Modal de Configuración de Probabilidades por Categoría (Engrane) */}
+      <CategoryWeightsModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categoryWeights={categoryWeights}
+        setCategoryWeights={setCategoryWeights}
+        activePrizesCount={activePrizesCount}
+        savingCategoryWeights={savingCategoryWeights}
+        categoryModalError={categoryModalError}
+        categorySuccessMsg={categorySuccessMsg}
+        onSave={handleSaveCategoryWeights}
+      />
 
-            {categorySuccessMsg && (
-              <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-lg flex items-center gap-2">
-                <CheckCircle2 size={16} />
-                <span>{categorySuccessMsg}</span>
-              </div>
-            )}
-
-            {categoryModalError && (
-              <div className="p-3 bg-red-50 border border-red-300 text-red-800 text-xs font-bold rounded-lg flex items-center gap-2">
-                <AlertTriangle size={16} />
-                <span>{categoryModalError}</span>
-              </div>
-            )}
-
-            {/* Barra Visual Apilada de Distribución */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-gray-700">Distribución Porcentual:</span>
-                <span className={`font-mono ${sumWeights === 100 ? 'text-emerald-700' : 'text-amber-600'}`}>
-                  Suma Total: {sumWeights}% {sumWeights === 100 ? '✓' : '(Recomendado: 100%)'}
-                </span>
-              </div>
-              <div className="w-full h-3 rounded-full overflow-hidden bg-gray-100 flex shadow-inner">
-                <div 
-                  style={{ width: `${(categoryWeights.sin_premio / (sumWeights || 1)) * 100}%` }}
-                  className="bg-gray-400 transition-all duration-300"
-                  title={`Sin Premio: ${categoryWeights.sin_premio}%`}
-                />
-                <div 
-                  style={{ width: `${(categoryWeights.promocion / (sumWeights || 1)) * 100}%` }}
-                  className="bg-[#F56B2A] transition-all duration-300"
-                  title={`Promociones: ${categoryWeights.promocion}%`}
-                />
-                <div 
-                  style={{ width: `${(categoryWeights.alto_valor / (sumWeights || 1)) * 100}%` }}
-                  className="bg-red-500 transition-all duration-300"
-                  title={`Alto Valor: ${categoryWeights.alto_valor}%`}
-                />
-              </div>
-            </div>
-
-            {/* Formulario de Pesos */}
-            <form onSubmit={handleSaveCategoryWeights} className="space-y-4">
-              {/* 1. Sin Premio */}
-              <div className="p-3.5 rounded-xl border border-gray-200 bg-gray-50/70 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-gray-400" />
-                    <span>🎯 Sin Premio / Sigue Intentando</span>
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={categoryWeights.sin_premio}
-                      onChange={(e) => setCategoryWeights(prev => ({ ...prev, sin_premio: Number(e.target.value) }))}
-                      className="w-16 px-2 py-1 border border-gray-300 rounded-md text-xs font-mono font-bold text-center bg-white"
-                    />
-                    <span className="text-xs font-bold text-gray-500">%</span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-gray-500">
-                  Repartido entre <strong>{activePrizesCount.tier_50_no_prize}</strong> opciones activas (~
-                  {activePrizesCount.tier_50_no_prize > 0 ? Math.round((categoryWeights.sin_premio / activePrizesCount.tier_50_no_prize) * 10) / 10 : 0}% cada una).
-                </p>
-              </div>
-
-              {/* 2. Promociones */}
-              <div className="p-3.5 rounded-xl border border-orange-200 bg-orange-50/40 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-orange-900 flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#F56B2A]" />
-                    <span>🏷️ Promociones & Descuentos (2x$35, $5 MXN, etc.)</span>
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={categoryWeights.promocion}
-                      onChange={(e) => setCategoryWeights(prev => ({ ...prev, promocion: Number(e.target.value) }))}
-                      className="w-16 px-2 py-1 border border-orange-300 rounded-md text-xs font-mono font-bold text-center bg-white text-orange-900"
-                    />
-                    <span className="text-xs font-bold text-gray-500">%</span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-orange-800/80">
-                  Repartido entre <strong>{activePrizesCount.tier_40_promo}</strong> promociones activas (~
-                  {activePrizesCount.tier_40_promo > 0 ? Math.round((categoryWeights.promocion / activePrizesCount.tier_40_promo) * 10) / 10 : 0}% cada una).
-                </p>
-              </div>
-
-              {/* 3. Alto Valor */}
-              <div className="p-3.5 rounded-xl border border-red-200 bg-red-50/40 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-red-900 flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    <span>🎁 Alto Valor / Cupcake Gratis</span>
-                  </label>
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={categoryWeights.alto_valor}
-                      onChange={(e) => setCategoryWeights(prev => ({ ...prev, alto_valor: Number(e.target.value) }))}
-                      className="w-16 px-2 py-1 border border-red-300 rounded-md text-xs font-mono font-bold text-center bg-white text-red-900"
-                    />
-                    <span className="text-xs font-bold text-gray-500">%</span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-red-800/80">
-                  Repartido entre <strong>{activePrizesCount.tier_10_high_value}</strong> premios activos (~
-                  {activePrizesCount.tier_10_high_value > 0 ? Math.round((categoryWeights.alto_valor / activePrizesCount.tier_10_high_value) * 10) / 10 : 0}% cada uno).
-                </p>
-              </div>
-
-              <div className="pt-3 flex justify-end gap-2 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-xs font-bold text-gray-700 hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingCategoryWeights}
-                  className="px-4 py-2 bg-[#0A2540] hover:bg-slate-800 text-white rounded-md text-xs font-bold shadow-sm flex items-center gap-1.5"
-                >
-                  {savingCategoryWeights ? 'Guardando y rebalanceando...' : 'Guardar y Redistribuir'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ===================================================================== */}
-      {/* SLIDE-OVER: REGISTRAR / EDITAR PROMOCIÓN                             */}
-      {/* ===================================================================== */}
-      <SlideOver
+      {/* SlideOver: Registrar / Editar Promoción */}
+      <PromotionFormSlideOver
         isOpen={isSlideOverOpen}
         onClose={() => setIsSlideOverOpen(false)}
-        title={editingPrize ? 'Editar Promoción' : 'Registrar Promoción'}
-        icon={<Package size={20} />}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setIsSlideOverOpen(false)}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 font-semibold text-xs hover:bg-gray-50 transition"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading || !title.trim()}
-              className="px-5 py-2 rounded-md bg-[#0A2540] hover:bg-[#081C30] text-white font-bold text-xs transition shadow-sm"
-            >
-              {loading ? 'Guardando...' : editingPrize ? 'Actualizar Promoción' : 'Guardar Promoción'}
-            </button>
-          </>
-        }
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">
-              Nombre de la Promoción *
-            </label>
-            <input
-              type="text"
-              placeholder="Ej. Promo: 2x$35 MXN o $5 Descuento"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">
-              Descripción para el Cliente
-            </label>
-            <textarea
-              rows={3}
-              placeholder="Ej. Llévate 2 cupcakes artesanales por $35 MXN en tu próxima compra."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs focus:outline-none focus:border-[#0A2540]"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">
-              Categoría de Probabilidad *
-            </label>
-            <select
-              value={tier}
-              onChange={(e: any) => {
-                const newTier = e.target.value
-                setTier(newTier)
-                if (newTier === 'tier_50_no_prize') {
-                  setProductId('')
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-            >
-              <option value="tier_40_promo">🏷️ Promoción / Descuento (Peso total: {categoryWeights.promocion}%)</option>
-              <option value="tier_10_high_value">🎁 Alto Valor / Cupcake Gratis (Peso total: {categoryWeights.alto_valor}%)</option>
-              <option value="tier_50_no_prize">🎯 Sin Premio / Sigue Intentando (Peso total: {categoryWeights.sin_premio}%)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1 flex items-center justify-between">
-              <span>Producto Asociado a la Promoción</span>
-              {tier === 'tier_50_no_prize' ? (
-                <span className="text-[10px] text-gray-400 font-normal">No aplica en Sin Premio</span>
-              ) : (
-                <span className="text-[10px] text-emerald-600 font-normal font-semibold">Opcional</span>
-              )}
-            </label>
-            <select
-              value={tier === 'tier_50_no_prize' ? '' : (productId || '')}
-              disabled={tier === 'tier_50_no_prize'}
-              onChange={(e) => setProductId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540] disabled:bg-gray-100 disabled:text-gray-400"
-            >
-              <option value="">Ninguno / General (Aplica a toda la tienda)</option>
-              {availableProducts.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre} (${p.precio_venta}.00 MXN)
-                </option>
-              ))}
-            </select>
-            <span className="text-[10px] text-gray-500 mt-1 block">
-              {tier === 'tier_50_no_prize' 
-                ? 'El producto queda deshabilitado (null) al ser una casilla sin premio.' 
-                : 'Indica si este premio o descuento aplica para un producto específico (ej. Pastel de Zanahoria o Cupcake).'}
-            </span>
-          </div>
-
-          {/* Tarjeta de Reparto Equitativo Automático */}
-          <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-lg text-xs space-y-1">
-            <div className="flex items-center gap-1.5 font-bold text-amber-900">
-              <Sparkles size={14} className="text-amber-600" />
-              <span>División Equitativa Automática:</span>
-            </div>
-            <p className="text-amber-800 leading-relaxed text-[11px]">
-              Al guardar en esta categoría (peso total <strong>{predicted.totalCat}%</strong>), se dividirá equitativamente entre las <strong>{predicted.nextCount} promociones activas</strong>, asignando aproximadamente <strong>~{predicted.individual}%</strong> a cada una.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Estado
-              </label>
-              <select
-                value={isActive ? 'true' : 'false'}
-                onChange={(e) => setIsActive(e.target.value === 'true')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-              >
-                <option value="true">Activo</option>
-                <option value="false">Pausado</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Color Distintivo
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={badgeColor}
-                  onChange={(e) => setBadgeColor(e.target.value)}
-                  className="w-8 h-8 rounded border border-gray-300 p-0.5 cursor-pointer"
-                />
-                <span className="text-xs font-mono font-bold text-gray-600">{badgeColor}</span>
-              </div>
-            </div>
-          </div>
-
-          {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-300 text-red-700 rounded-md text-xs">
-              {errorMsg}
-            </div>
-          )}
-        </form>
-      </SlideOver>
+        editingPrize={editingPrize}
+        title={title}
+        setTitle={setTitle}
+        description={description}
+        setDescription={setDescription}
+        tier={tier}
+        setTier={setTier}
+        tipoBeneficio={tipoBeneficio || 'descuento_fijo'}
+        setTipoBeneficio={setTipoBeneficio}
+        precioPromocional={precioPromocional}
+        setPrecioPromocional={setPrecioPromocional}
+        descuentoMonto={descuentoMonto}
+        setDescuentoMonto={setDescuentoMonto}
+        piezasAmparadas={piezasAmparadas}
+        setPiezasAmparadas={setPiezasAmparadas}
+        productId={productId}
+        setProductId={setProductId}
+        isActive={isActive}
+        setIsActive={setIsActive}
+        badgeColor={badgeColor}
+        setBadgeColor={setBadgeColor}
+        categoryWeights={categoryWeights}
+        predicted={predicted}
+        availableProducts={availableProducts}
+        loading={loading}
+        errorMsg={errorMsg}
+        onSubmit={handleSubmit}
+      />
     </div>
   )
 }

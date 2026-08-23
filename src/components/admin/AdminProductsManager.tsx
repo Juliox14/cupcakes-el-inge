@@ -27,8 +27,10 @@ import {
   saveRecipeApi 
 } from '../../services'
 import type { ProductoConCosto, Ingrediente } from '../../types'
-import { SlideOver } from './SlideOver'
 import { toast } from '../../context/ToastContext'
+import { RecipeFormView } from './products/RecipeFormView'
+import { ProductFormSlideOver } from './products/ProductFormSlideOver'
+import { IngredientFormSlideOver } from './products/IngredientFormSlideOver'
 
 // Helper de magnitudes y compatibilidad de unidades en el Frontend
 type UnitMagnitude = 'masa' | 'volumen' | 'unidades' | 'desconocido'
@@ -772,328 +774,25 @@ export const AdminProductsManager: React.FC = () => {
       {/* PESTAÑA 2: CALCULADORA DE RECETA CON FILTRO Y AUTO-GUARDADO         */}
       {/* ===================================================================== */}
       {activeSubTab === 'recipe_editor' && (
-        <div className="space-y-5">
-          {/* Selector de Producto y Barra de Agregar Insumo No Duplicado */}
-          <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-bold text-gray-700 whitespace-nowrap">
-                  Producto a Formular:
-                </label>
-                <select
-                  value={selectedProductForRecipe?.id || ''}
-                  onChange={(e) => {
-                    const found = products.find(p => p.id === e.target.value)
-                    if (found) setSelectedProductForRecipe(found)
-                  }}
-                  className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-xs font-bold text-gray-900 focus:outline-none focus:border-[#0A2540]"
-                >
-                  {products.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} (${p.precio_venta}.00 MXN — Rinde: {p.rendimiento_tanda || 24} {p.tipo_unidad || 'piezas'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Indicador de Auto-guardado en la barra */}
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-gray-500 font-medium">
-                  ⚡ Los cambios en insumos y cantidades se guardan al instante.
-                </span>
-              </div>
-            </div>
-
-            {/* Selector de Insumos Disponibles (Excluye los ya añadidos a la receta) */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <label className="text-xs font-bold text-gray-700 whitespace-nowrap flex items-center gap-1.5">
-                <UtensilsCrossed size={14} className="text-[#F56B2A]" />
-                <span>Añadir Insumo a la Receta:</span>
-              </label>
-
-              {availableIngredientsForRecipe.length > 0 ? (
-                <div className="flex items-center gap-2 flex-1 max-w-lg">
-                  <select
-                    value={pendingIngredientToAdd}
-                    onChange={(e) => setPendingIngredientToAdd(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-[#0A2540]"
-                  >
-                    {availableIngredientsForRecipe.map(ing => (
-                      <option key={ing.id} value={ing.id}>
-                        {ing.nombre} (Comprado en: {ing.cantidad_numerica || 1} {ing.unidad_medida || 'kg'} — ${ing.precio} MXN)
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    onClick={handleAddSelectedIngredient}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition shadow-2xs shrink-0"
-                  >
-                    <Plus size={14} />
-                    <span>Añadir</span>
-                  </button>
-                </div>
-              ) : (
-                <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-                  ✓ Todos los insumos del catálogo ya están añadidos a esta receta.
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* TABLA DE INGREDIENTES EN LA RECETA */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-xs overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-[#F8FAFC]">
-              <div>
-                <h4 className="font-bold text-sm text-[#0A2540]">
-                  Formulación de Insumos para 1 Preparación ({liveMetrics.yieldQty} {liveMetrics.yieldUnit})
-                </h4>
-                <p className="text-[11px] text-gray-500">
-                  Ingresa las cantidades exactas necesarias para producir {liveMetrics.yieldQty} {liveMetrics.yieldUnit} de {selectedProductForRecipe?.nombre}.
-                </p>
-              </div>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded">
-                {recipeItems.length} insumos en receta
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-gray-600 text-[11px] uppercase font-bold border-b border-gray-200 select-none">
-                  <tr>
-                    <th 
-                      onClick={() => handleRecipeSort('nombre')} 
-                      className="py-3 px-4 cursor-pointer hover:bg-slate-200/60 transition group"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>Ingrediente</span>
-                        {recipeSortField === 'nombre' ? (
-                          recipeSortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                        ) : (
-                          <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                        )}
-                      </div>
-                    </th>
-
-                    <th 
-                      onClick={() => handleRecipeSort('presentacion')} 
-                      className="py-3 px-4 cursor-pointer hover:bg-slate-200/60 transition group"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>Compra / Presentación</span>
-                        {recipeSortField === 'presentacion' ? (
-                          recipeSortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                        ) : (
-                          <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                        )}
-                      </div>
-                    </th>
-
-                    <th 
-                      onClick={() => handleRecipeSort('cantidad')} 
-                      className="py-3 px-4 text-center cursor-pointer hover:bg-slate-200/60 transition group"
-                    >
-                      <div className="flex items-center justify-center gap-1.5">
-                        <span>Cantidad en Receta</span>
-                        {recipeSortField === 'cantidad' ? (
-                          recipeSortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                        ) : (
-                          <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                        )}
-                      </div>
-                    </th>
-
-                    <th className="py-3 px-4 text-center">Unidad de Receta</th>
-
-                    <th 
-                      onClick={() => handleRecipeSort('costo')} 
-                      className="py-3 px-4 text-right cursor-pointer hover:bg-slate-200/60 transition group"
-                    >
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span>Costo en Receta</span>
-                        {recipeSortField === 'costo' ? (
-                          recipeSortDirection === 'asc' ? <ArrowUp size={13} className="text-[#0A2540]" /> : <ArrowDown size={13} className="text-[#0A2540]" />
-                        ) : (
-                          <ArrowUpDown size={13} className="text-gray-400 group-hover:text-gray-600" />
-                        )}
-                      </div>
-                    </th>
-
-                    <th className="py-3 px-4 text-right">Costo / {liveMetrics.yieldQty === 1 ? 'Pieza' : 'Unidad'}</th>
-                    <th className="py-3 px-4 text-center">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 font-medium text-gray-800">
-                  {recipeItems.length > 0 ? (
-                    recipeItems.map((item, idx) => {
-                      const currentIng = ingredients.find(i => i.id === item.ingrediente_id)
-                      const precioCompra = Number(currentIng?.precio || 0)
-                      let cantidadCompra = Number(currentIng?.cantidad_numerica || 0)
-                      let unidadCompra = currentIng?.unidad_medida || 'kg'
-                      
-                      if (cantidadCompra <= 0 && currentIng?.cantidad) {
-                        const m = currentIng.cantidad.match(/[\d.]+/)
-                        cantidadCompra = m ? parseFloat(m[0]) : 1
-                        const low = currentIng.cantidad.toLowerCase()
-                        if (low.includes('kg')) unidadCompra = 'kg'
-                        else if (low.includes('gr')) unidadCompra = 'gr'
-                        else if (low.includes('litro') || low.includes('lt')) unidadCompra = 'litros'
-                        else if (low.includes('ml')) unidadCompra = 'ml'
-                        else if (low.includes('pza')) unidadCompra = 'pzas'
-                      }
-
-                      if (cantidadCompra <= 0) cantidadCompra = 1
-
-                      const calc = calculateLiveIngredientCost(
-                        precioCompra,
-                        cantidadCompra,
-                        unidadCompra,
-                        item.cantidad_necesaria,
-                        item.unidad_medida
-                      )
-
-                      const itemUnitCost = Math.round((calc.costo / liveMetrics.yieldQty) * 100) / 100
-                      const ingMagnitude = getUnitMagnitude(unidadCompra).magnitude
-
-                      return (
-                        <tr key={item.ingrediente_id} className={`hover:bg-slate-50/80 transition ${!calc.compatible ? 'bg-red-50/60' : ''}`}>
-                          <td className="py-3 px-4">
-                            <strong className="font-bold text-gray-900 block">
-                              {currentIng?.nombre || 'Ingrediente'}
-                            </strong>
-                            {currentIng?.proveedor && (
-                              <span className="text-[10px] text-gray-400 font-normal">
-                                {currentIng.proveedor}
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-4 text-gray-600 font-mono text-[11px]">
-                            ${precioCompra}.00 MXN / {cantidadCompra} {unidadCompra}
-                          </td>
-
-                          <td className="py-3 px-4 text-center">
-                            <input
-                              type="number"
-                              min={0}
-                              step="any"
-                              value={item.cantidad_necesaria}
-                              onChange={(e) => handleUpdateRecipeItem(idx, 'cantidad_necesaria', Number(e.target.value))}
-                              className="w-24 px-2 py-1 bg-white border border-gray-300 rounded text-center font-bold text-xs text-gray-900 focus:outline-none focus:border-[#0A2540]"
-                            />
-                          </td>
-
-                          <td className="py-3 px-4 text-center">
-                            <select
-                              value={item.unidad_medida}
-                              onChange={(e) => handleUpdateRecipeItem(idx, 'unidad_medida', e.target.value)}
-                              className={`px-2.5 py-1 bg-white border rounded text-xs font-semibold ${
-                                !calc.compatible ? 'border-red-500 text-red-700 bg-red-50 font-bold' : 'border-gray-300 text-gray-700'
-                              }`}
-                            >
-                              {/* Unidades de Masa */}
-                              {ingMagnitude === 'masa' && (
-                                <>
-                                  <option value="gr">gr (gramos)</option>
-                                  <option value="kg">kg (kilos)</option>
-                                  <option value="cda">cda (~15 gr)</option>
-                                  <option value="cdita">cdita (~5 gr)</option>
-                                </>
-                              )}
-
-                              {/* Unidades de Volumen */}
-                              {ingMagnitude === 'volumen' && (
-                                <>
-                                  <option value="ml">ml (mililitros)</option>
-                                  <option value="litros">litros</option>
-                                  <option value="cda">cda (~15 ml)</option>
-                                  <option value="cdita">cdita (~5 ml)</option>
-                                </>
-                              )}
-
-                              {/* Unidades de Conteo */}
-                              {ingMagnitude === 'unidades' && (
-                                <>
-                                  <option value="pzas">pzas (piezas)</option>
-                                  <option value="docena">docenas (12 pzas)</option>
-                                </>
-                              )}
-
-                              {/* Opciones generales si la magnitud es desconocida */}
-                              {ingMagnitude === 'desconocido' && (
-                                <>
-                                  <option value="gr">gr</option>
-                                  <option value="kg">kg</option>
-                                  <option value="ml">ml</option>
-                                  <option value="litros">litros</option>
-                                  <option value="pzas">pzas</option>
-                                </>
-                              )}
-                            </select>
-
-                            {!calc.compatible && (
-                              <span className="block text-[10px] text-red-600 font-bold mt-1">
-                                ⚠️ Incompatible
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-4 text-right font-mono font-bold text-gray-900">
-                            ${calc.costo} MXN
-                          </td>
-
-                          <td className="py-3 px-4 text-right font-mono font-bold text-gray-600 text-[11px]">
-                            ${itemUnitCost} MXN
-                          </td>
-
-                          <td className="py-3 px-4 text-center">
-                            <button
-                              onClick={() => handleRemoveRecipeItem(idx)}
-                              className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 transition"
-                              title="Quitar de receta"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-gray-400 text-xs italic">
-                        No hay insumos en esta receta. Selecciona un insumo en la barra superior para añadirlo.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* RESUMEN FINANCIERO EN VIVO DE LA PREPARACIÓN */}
-            <div className="bg-[#0A2540] text-white p-5 border-t border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                <span className="text-[10px] text-slate-300 uppercase font-bold block">Costo Total Receta ({liveMetrics.yieldQty} {liveMetrics.yieldUnit})</span>
-                <strong className="text-lg font-mono font-bold text-amber-400">${liveMetrics.totalTanda} MXN</strong>
-              </div>
-
-              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                <span className="text-[10px] text-slate-300 uppercase font-bold block">Costo Insumos / {liveMetrics.yieldQty === 1 ? 'Pieza' : 'Unidad'}</span>
-                <strong className="text-lg font-mono font-bold text-slate-100">${liveMetrics.unitCost} MXN</strong>
-              </div>
-
-              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                <span className="text-[10px] text-slate-300 uppercase font-bold block">Venta Total ({liveMetrics.yieldQty} x ${selectedProductForRecipe?.precio_venta || 20})</span>
-                <strong className="text-lg font-mono font-bold text-blue-300">${liveMetrics.batchRevenue} MXN</strong>
-              </div>
-
-              <div className="p-3 bg-emerald-500/20 rounded-lg border border-emerald-400/30">
-                <span className="text-[10px] text-emerald-300 uppercase font-bold block">Ganancia Neta Preparación</span>
-                <strong className="text-lg font-mono font-bold text-emerald-400">+${liveMetrics.batchProfit} MXN</strong>
-                <span className="text-[10px] text-emerald-300 block">({liveMetrics.margin}% margen)</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <RecipeFormView
+          products={products}
+          selectedProductForRecipe={selectedProductForRecipe}
+          setSelectedProductForRecipe={setSelectedProductForRecipe}
+          availableIngredientsForRecipe={availableIngredientsForRecipe}
+          pendingIngredientToAdd={pendingIngredientToAdd}
+          setPendingIngredientToAdd={setPendingIngredientToAdd}
+          onAddSelectedIngredient={handleAddSelectedIngredient}
+          recipeItems={recipeItems}
+          ingredients={ingredients}
+          recipeSortField={recipeSortField}
+          recipeSortDirection={recipeSortDirection}
+          onRecipeSort={handleRecipeSort}
+          onUpdateRecipeItem={handleUpdateRecipeItem}
+          onRemoveRecipeItem={handleRemoveRecipeItem}
+          liveMetrics={liveMetrics}
+          calculateLiveIngredientCost={calculateLiveIngredientCost}
+          getUnitMagnitude={getUnitMagnitude}
+        />
       )}
 
       {/* ===================================================================== */}
@@ -1236,213 +935,25 @@ export const AdminProductsManager: React.FC = () => {
         </div>
       )}
 
-      {/* SLIDE-OVER: CREAR / EDITAR PRODUCTO */}
-      <SlideOver
+      {/* SlideOver: Crear / Editar Producto */}
+      <ProductFormSlideOver
         isOpen={isProductSlideOverOpen}
         onClose={() => setIsProductSlideOverOpen(false)}
-        title={editingProduct ? 'Editar Producto' : 'Registrar Nuevo Producto'}
-      >
-        <form onSubmit={handleSaveProduct} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">Nombre del Producto *</label>
-            <input
-              type="text"
-              required
-              value={productForm.nombre}
-              onChange={(e) => setProductForm(prev => ({ ...prev, nombre: e.target.value }))}
-              placeholder="Ej. Pastel de Zanahoria Tradicional, Cupcakes con Nuez"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-            />
-          </div>
+        editingProduct={editingProduct}
+        productForm={productForm}
+        setProductForm={setProductForm}
+        onSubmit={handleSaveProduct}
+      />
 
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">Descripción / Sabor</label>
-            <textarea
-              rows={3}
-              value={productForm.descripcion}
-              onChange={(e) => setProductForm(prev => ({ ...prev, descripcion: e.target.value }))}
-              placeholder="Detalles del pastel, cobertura de queso crema, tamaño..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-medium focus:outline-none focus:border-[#0A2540]"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Rendimiento de Receta *
-              </label>
-              <input
-                type="number"
-                min={1}
-                required
-                value={productForm.rendimiento_tanda}
-                onChange={(e) => setProductForm(prev => ({ ...prev, rendimiento_tanda: Number(e.target.value) }))}
-                placeholder="24 para cupcakes, 1 para pastel"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-bold text-[#0A2540] focus:outline-none focus:border-[#0A2540]"
-              />
-              <span className="text-[10px] text-gray-500 mt-0.5 block">Ej: 24 (cupcakes) o 1 (pastel)</span>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Tipo de Unidad *
-              </label>
-              <input
-                type="text"
-                required
-                value={productForm.tipo_unidad}
-                onChange={(e) => setProductForm(prev => ({ ...prev, tipo_unidad: e.target.value }))}
-                placeholder="cupcakes, pasteles, piezas"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-              />
-              <span className="text-[10px] text-gray-500 mt-0.5 block">Ej: pasteles, cupcakes, rebanadas</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">Precio de Venta al Público (MXN) *</label>
-            <div className="relative">
-              <span className="absolute left-3 top-2 text-gray-500 font-bold">$</span>
-              <input
-                type="number"
-                min={1}
-                required
-                value={productForm.precio}
-                onChange={(e) => setProductForm(prev => ({ ...prev, precio: Number(e.target.value) }))}
-                className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md text-xs font-bold text-emerald-700 focus:outline-none focus:border-[#0A2540]"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 flex justify-end gap-2 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => setIsProductSlideOverOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-xs font-bold text-gray-700 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#0A2540] hover:bg-slate-800 text-white rounded-md text-xs font-bold shadow-sm"
-            >
-              {editingProduct ? 'Guardar Cambios' : 'Crear Producto'}
-            </button>
-          </div>
-        </form>
-      </SlideOver>
-
-      {/* SLIDE-OVER: CREAR / EDITAR INGREDIENTE CON CANTIDAD NUMÉRICA Y UNIDAD SEPARADAS */}
-      <SlideOver
+      {/* SlideOver: Crear / Editar Insumo */}
+      <IngredientFormSlideOver
         isOpen={isIngredientSlideOverOpen}
         onClose={() => setIsIngredientSlideOverOpen(false)}
-        title={editingIngredient ? 'Editar Insumo' : 'Registrar Nuevo Insumo'}
-      >
-        <form onSubmit={handleSaveIngredient} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">Nombre del Insumo *</label>
-            <input
-              type="text"
-              required
-              value={ingredientForm.nombre}
-              onChange={(e) => setIngredientForm(prev => ({ ...prev, nombre: e.target.value }))}
-              placeholder="Ej. Zanahorias Frescas, Queso Crema, Harina"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-semibold focus:outline-none focus:border-[#0A2540]"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">Proveedor / Lugar de Compra</label>
-            <input
-              type="text"
-              value={ingredientForm.proveedor}
-              onChange={(e) => setIngredientForm(prev => ({ ...prev, proveedor: e.target.value }))}
-              placeholder="Ej. Mercado San Juan, Abarrotes Central"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-medium focus:outline-none focus:border-[#0A2540]"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-gray-700 block mb-1">Costo de Compra del Paquete (MXN) *</label>
-            <div className="relative">
-              <span className="absolute left-3 top-2 text-gray-500 font-bold">$</span>
-              <input
-                type="number"
-                min={0}
-                step="any"
-                required
-                value={ingredientForm.precio}
-                onChange={(e) => setIngredientForm(prev => ({ ...prev, precio: Number(e.target.value) }))}
-                className="w-full pl-7 pr-3 py-2 border border-gray-300 rounded-md text-xs font-bold text-emerald-700 focus:outline-none focus:border-[#0A2540]"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Cantidad Comprada *
-              </label>
-              <input
-                type="number"
-                min={0.01}
-                step="any"
-                required
-                value={ingredientForm.cantidad_numerica}
-                onChange={(e) => setIngredientForm(prev => ({ ...prev, cantidad_numerica: Number(e.target.value) }))}
-                placeholder="Ej. 1, 190, 500"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-bold text-gray-900 focus:outline-none focus:border-[#0A2540]"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-gray-700 block mb-1">
-                Unidad de Medida *
-              </label>
-              <select
-                value={ingredientForm.unidad_medida}
-                onChange={(e) => setIngredientForm(prev => ({ ...prev, unidad_medida: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-xs font-bold text-gray-900 bg-white focus:outline-none focus:border-[#0A2540]"
-              >
-                <optgroup label="Masa / Peso">
-                  <option value="kg">kg (Kilogramos)</option>
-                  <option value="gr">gr (Gramos)</option>
-                </optgroup>
-                <optgroup label="Volumen / Líquidos">
-                  <option value="litros">litros (Litros)</option>
-                  <option value="ml">ml (Mililitros)</option>
-                </optgroup>
-                <optgroup label="Conteo">
-                  <option value="pzas">pzas (Piezas)</option>
-                </optgroup>
-              </select>
-            </div>
-          </div>
-
-          <div className="p-2.5 bg-slate-50 border border-gray-200 rounded-md text-[11px] text-gray-600">
-            <span>Presentación registrada: </span>
-            <strong className="text-gray-900 font-bold">
-              {ingredientForm.cantidad_numerica || 1} {ingredientForm.unidad_medida || 'kg'} por ${ingredientForm.precio || 0}.00 MXN
-            </strong>
-          </div>
-
-          <div className="pt-4 flex justify-end gap-2 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => setIsIngredientSlideOverOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded-md text-xs font-bold text-gray-700 hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-[#0A2540] hover:bg-slate-800 text-white rounded-md text-xs font-bold shadow-sm"
-            >
-              {editingIngredient ? 'Guardar Cambios' : 'Registrar Insumo'}
-            </button>
-          </div>
-        </form>
-      </SlideOver>
+        editingIngredient={editingIngredient}
+        ingredientForm={ingredientForm}
+        setIngredientForm={setIngredientForm}
+        onSubmit={handleSaveIngredient}
+      />
     </div>
   )
 }
