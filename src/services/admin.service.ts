@@ -28,6 +28,9 @@ export async function registerPurchaseApi(
     unit_price: number
     total_amount: number
     spins_granted: number
+    coupon_id?: string
+    coupon_code?: string
+    discount_amount?: number
     admin_id?: string
   } | string,
   qty?: number,
@@ -37,6 +40,8 @@ export async function registerPurchaseApi(
   success: boolean
   purchase: any
   spins_granted: number
+  discount_amount?: number
+  redeemed_coupon?: any
   message: string
 }> {
   let payload: any
@@ -87,6 +92,10 @@ export async function createPrizeApi(params: {
   description?: string
   producto_id?: string | null
   tier: Prize['tier']
+  tipo_beneficio?: Prize['tipo_beneficio']
+  precio_promocional?: number | null
+  descuento_monto?: number | null
+  piezas_amparadas?: number | null
   weight?: number
   badge_color?: string
 }): Promise<{ success: boolean; prize: Prize }> {
@@ -160,5 +169,22 @@ export async function updateCategoryWeightsApi(weights: {
     body: JSON.stringify(weights),
   })
   return handleApiResponse(res, 'Error al actualizar probabilidades por categoría.')
+}
+
+export async function grantSpinsApi(
+  userId: string,
+  spinsToAdd: number
+): Promise<{
+  success: boolean
+  message: string
+  spins_available: number
+  user: any
+}> {
+  const res = await fetch(`${API_BASE}/admin/grant-spins`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, spins_to_add: spinsToAdd }),
+  })
+  return handleApiResponse(res, 'Error al modificar los tiros del cliente.')
 }
 

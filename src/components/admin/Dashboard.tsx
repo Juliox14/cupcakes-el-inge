@@ -172,50 +172,58 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </button>
       </div>
 
-      {/* Métricas Principales (Tarjetas de KPI) */}
+      {/* Métricas Principales (Tarjetas Financieras y Operativas) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* 1. Ingresos Reales en Caja */}
         <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 space-y-1">
           <div className="flex items-center justify-between text-gray-500">
-            <span className="text-[11px] font-bold uppercase">Clientes</span>
-            <Users size={16} className="text-[#FF6D00]" />
+            <span className="text-[11px] font-bold uppercase">Ingresos Reales</span>
+            <DollarSign size={16} className="text-[#16A34A]" />
           </div>
           <p className="text-2xl font-heading font-black text-[#1E1E24]">
-            {loadingMetrics ? '...' : metrics?.total_users}
+            ${loadingMetrics ? '...' : (metrics?.total_revenue_mxn ?? 0).toFixed(2)} MXN
           </p>
-          <p className="text-[10px] text-gray-400">Registrados en la plataforma</p>
+          <p className="text-[10px] text-gray-400">{metrics?.total_cupcakes_sold ?? 0} cupcakes vendidos</p>
         </div>
 
+        {/* 2. Ganancia Neta Real */}
+        <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 space-y-1">
+          <div className="flex items-center justify-between text-gray-500">
+            <span className="text-[11px] font-bold uppercase">Utilidad Neta</span>
+            <TrendingUp size={16} className="text-emerald-600" />
+          </div>
+          <p className="text-2xl font-heading font-black text-emerald-700">
+            +${loadingMetrics ? '...' : (metrics?.total_gross_profit_mxn ?? 0).toFixed(2)} MXN
+          </p>
+          <p className="text-[10px] text-emerald-600 font-semibold">
+            Margen: {loadingMetrics ? '...' : (metrics?.profit_margin ?? 0)}% real
+          </p>
+        </div>
+
+        {/* 3. Descuentos Bonificados en Promos */}
+        <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 space-y-1">
+          <div className="flex items-center justify-between text-gray-500">
+            <span className="text-[11px] font-bold uppercase">Promos Bonificadas</span>
+            <Ticket size={16} className="text-[#F56B2A]" />
+          </div>
+          <p className="text-2xl font-heading font-black text-[#F56B2A]">
+            -${loadingMetrics ? '...' : (metrics?.total_discounts_granted_mxn ?? 0).toFixed(2)} MXN
+          </p>
+          <p className="text-[10px] text-gray-400">Ahorro otorgado a clientes</p>
+        </div>
+
+        {/* 4. Tasa de Canje de Cupones */}
         <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 space-y-1">
           <div className="flex items-center justify-between text-gray-500">
             <span className="text-[11px] font-bold uppercase">Cupones Canjeados</span>
-            <Ticket size={16} className="text-[#D32F2F]" />
+            <Users size={16} className="text-[#0A2540]" />
           </div>
-          <p className="text-2xl font-heading font-black text-[#1E1E24]">
-            {loadingMetrics ? '...' : `${metrics?.total_coupons_redeemed} / ${metrics?.total_coupons_issued}`}
+          <p className="text-2xl font-heading font-black text-[#0A2540]">
+            {loadingMetrics ? '...' : `${metrics?.total_coupons_redeemed ?? 0} / ${metrics?.total_coupons_issued ?? 0}`}
           </p>
-          <p className="text-[10px] text-gray-400">En mostrador artesanal</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 space-y-1">
-          <div className="flex items-center justify-between text-gray-500">
-            <span className="text-[11px] font-bold uppercase">Tasa Retención</span>
-            <TrendingUp size={16} className="text-emerald-500" />
-          </div>
-          <p className="text-2xl font-heading font-black text-emerald-600">
-            {loadingMetrics ? '...' : `${metrics?.redemption_rate}%`}
+          <p className="text-[10px] text-indigo-600 font-semibold">
+            {loadingMetrics ? '...' : `${metrics?.redemption_rate ?? 0}% efectividad`}
           </p>
-          <p className="text-[10px] text-gray-400">Cupones efectivos</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-100 space-y-1">
-          <div className="flex items-center justify-between text-gray-500">
-            <span className="text-[11px] font-bold uppercase">Ventas Estimadas</span>
-            <DollarSign size={16} className="text-[#FF6D00]" />
-          </div>
-          <p className="text-2xl font-heading font-black text-[#1E1E24]">
-            ${loadingMetrics ? '...' : metrics?.total_revenue_mxn} MXN
-          </p>
-          <p className="text-[10px] text-gray-400">{metrics?.total_cupcakes_sold} cupcakes totales</p>
         </div>
       </div>
 

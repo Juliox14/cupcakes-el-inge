@@ -11,13 +11,15 @@ import {
   ShoppingBag, 
   Plus, 
   Minus,
-  Phone
+  Phone,
+  Sparkles
 } from 'lucide-react'
 import { 
   verifyCouponApi, 
   redeemCouponApi, 
   getClientByQueryApi, 
-  registerPurchaseApi 
+  registerPurchaseApi,
+  grantSpinsApi 
 } from '../../lib/api'
 import type { Coupon, UserProfile } from '../../types'
 import { toast } from '../../context/ToastContext'
@@ -245,6 +247,27 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     handleProcessDecoded(manualCode.trim())
   }
 
+  // Otorgar Giros Rápidos al Cliente Escaneado
+  const handleGrantSpinsQuick = async (amount: number) => {
+    if (!detectedClient) return
+    const target = detectedClient
+
+    // Actualización optimista
+    const updatedUser: UserProfile = {
+      ...target,
+      spins_available: Math.max(0, (target.spins_available || 0) + amount)
+    }
+    setDetectedClient(updatedUser)
+
+    try {
+      const res = await grantSpinsApi(target.id, amount)
+      toast.success('¡Tiros Asignados!', res.message || `+${amount} tiros acreditados a ${target.full_name}.`)
+      onRedeemedSuccess()
+    } catch (err: any) {
+      toast.error('Error al asignar tiros', err.message || 'No se pudieron actualizar los tiros.')
+    }
+  }
+
   // Cálculo de jugadas a otorgar
   const spinsCalculated = Math.floor(cupcakesQty / 2)
   const currentWeekly = detectedClient ? (detectedClient.total_cupcakes_purchased % 5 || (detectedClient.total_cupcakes_purchased > 0 ? 5 : 0)) : 0
@@ -254,7 +277,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative border-4 border-orange-100 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition p-1"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition p-1 cursor-pointer"
         >
           <X size={20} />
         </button>
@@ -274,13 +297,13 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
           <button
             onClick={() => setScanMode('scan')}
-            className={`flex-1 py-1.5 rounded-lg transition ${scanMode === 'scan' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
+            className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${scanMode === 'scan' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
           >
             📷 Cámara QR
           </button>
           <button
             onClick={() => setScanMode('manual')}
-            className={`flex-1 py-1.5 rounded-lg transition ${scanMode === 'manual' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
+            className={`flex-1 py-1.5 rounded-lg transition cursor-pointer ${scanMode === 'manual' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
           >
             ⌨️ Ingreso Manual
           </button>
@@ -348,6 +371,36 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               <div className="bg-white p-2 rounded-xl border border-orange-200">
                 <span className="text-[10px] text-gray-500 block">Tiros disponibles</span>
                 <strong className="text-[#FF6D00] text-sm font-bold">{detectedClient.spins_available || 0} tiros 🎮</strong>
+              </div>
+            </div>
+
+            {/* Botones de Asignación Rápida de Tiros */}
+            <div className="bg-white p-2.5 rounded-xl border border-orange-200 space-y-1.5">
+              <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
+                <Sparkles size={12} className="text-[#F56B2A]" /> Asignar Tiros Manuales:
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleGrantSpinsQuick(1)}
+                  className="py-1.5 px-2 bg-orange-50 hover:bg-[#F56B2A] hover:text-white text-orange-900 border border-orange-200 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  +1 Giro 🥕
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGrantSpinsQuick(2)}
+                  className="py-1.5 px-2 bg-orange-50 hover:bg-[#F56B2A] hover:text-white text-orange-900 border border-orange-200 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  +2 Giros 🥕
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleGrantSpinsQuick(5)}
+                  className="py-1.5 px-2 bg-orange-50 hover:bg-[#F56B2A] hover:text-white text-orange-900 border border-orange-200 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  +5 Giros 🎁
+                </button>
               </div>
             </div>
 
@@ -443,16 +496,70 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               </div>
             </div>
 
-            {/* Botón Aplicar Canje */}
+            {/* Botones de Aplicar Canje */}
             {verificationResult.valid && verificationResult.coupon && (
-              <button
-                onClick={handleRedeem}
-                disabled={redeeming}
-                className="w-full py-3 rounded-xl bg-green-600 text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
-              >
-                {redeeming ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-                Confirmar y Aplicar Canje
-              </button>
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={async () => {
+                    if (!verificationResult?.coupon) return
+                    setRedeeming(true)
+                    const coupon = verificationResult.coupon
+                    const p = (coupon.prize || (coupon as any).premio) as any
+                    const qty = Number(p?.piezas_amparadas || 1)
+                    let priceToCharge = 0
+
+                    if (p?.tipo_beneficio === 'precio_promocional' && p?.precio_promocional) {
+                      priceToCharge = Number(p.precio_promocional)
+                    } else if (p?.tipo_beneficio === 'producto_gratis') {
+                      priceToCharge = 0.00
+                    } else if (p?.tipo_beneficio === 'descuento_fijo' && p?.descuento_monto) {
+                      priceToCharge = Math.max(0, (qty * 20) - Number(p.descuento_monto))
+                    } else if (p?.descuento_monto) {
+                      priceToCharge = Math.max(0, (qty * 20) - Number(p.descuento_monto))
+                    } else {
+                      priceToCharge = 35.00
+                    }
+
+                    try {
+                      await registerPurchaseApi({
+                        user_id: coupon.user_id,
+                        client_name: (coupon as any).user_profile?.full_name || 'Cliente Registrado',
+                        cupcakes_qty: qty,
+                        unit_price: 20,
+                        total_amount: priceToCharge,
+                        coupon_id: coupon.id,
+                        spins_granted: 0,
+                        admin_id: adminId
+                      })
+
+                      toast.success(
+                        '¡Promo canjeada y registrada en caja!',
+                        `Monto cobrado: $${priceToCharge} MXN (${qty} piezas). 0 tiros de ruleta por política de promoción.`
+                      )
+                      setVerificationResult(prev => prev ? { ...prev, status: 'redeemed', valid: false } : null)
+                      onRedeemedSuccess()
+                    } catch (err: any) {
+                      toast.error('Error al registrar venta promo', err.message)
+                    } finally {
+                      setRedeeming(false)
+                    }
+                  }}
+                  disabled={redeeming}
+                  className="w-full py-3 rounded-xl bg-[#0A2540] text-white font-heading font-black text-xs uppercase tracking-wider shadow-lg hover:bg-[#081C30] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {redeeming ? <RefreshCw className="animate-spin" size={16} /> : <ShoppingBag size={16} />}
+                  Canjear y Cobrar Promo en Caja (0 Tiros)
+                </button>
+
+                <button
+                  onClick={handleRedeem}
+                  disabled={redeeming}
+                  className="w-full py-2 rounded-xl bg-gray-200 text-gray-800 font-bold text-xs hover:bg-gray-300 transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {redeeming ? <RefreshCw className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
+                  Solo Marcar como Canjeado
+                </button>
+              </div>
             )}
           </div>
         )}

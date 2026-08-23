@@ -93,7 +93,12 @@ async function verifyCouponByInput(rawInput: string, c: any) {
           title: coupon.premio?.titulo,
           description: coupon.premio?.descripcion,
           tier: coupon.premio?.categoria_nivel,
-          badge_color: coupon.premio?.color_distintivo
+          badge_color: coupon.premio?.color_distintivo,
+          tipo_beneficio: coupon.premio?.tipo_beneficio || 'descuento_fijo',
+          precio_promocional: coupon.premio?.precio_promocional !== null ? Number(coupon.premio?.precio_promocional) : null,
+          descuento_monto: coupon.premio?.descuento_monto !== null ? Number(coupon.premio?.descuento_monto) : 0,
+          piezas_amparadas: coupon.premio?.piezas_amparadas !== null ? Number(coupon.premio?.piezas_amparadas) : 1,
+          producto_id: coupon.premio?.producto_id || null
         },
         status: coupon.estado,
         user_profile: {

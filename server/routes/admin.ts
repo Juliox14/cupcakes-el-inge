@@ -62,6 +62,24 @@ adminRouter.get('/metrics', async (c) => {
       24
     )
     const currentStock = settingsMap.has('stock_actual') ? Number(settingsMap.get('stock_actual')) : 24
+    const unitCost = Number(settingsMap.get('costo_produccion_cupcake') ?? 6.67)
+    const unitPrice = Number(settingsMap.get('precio_venta_cupcake') ?? 20.00)
+
+    // Cálculo financiero real
+    const totalProductionCost = totalCupcakesSold * unitCost
+    const totalGrossProfit = Math.max(0, totalRevenueMXN - totalProductionCost)
+    
+    // Descuentos bonificados por promociones/cupones (Diferencia entre precio regular e ingreso real en caja)
+    const totalDiscountsGranted = purchases.reduce((acc, curr) => {
+      const regularAmount = (curr.cantidad_cupcakes || 0) * unitPrice
+      const realAmount = Number(curr.monto_total || 0)
+      const diff = Math.max(0, regularAmount - realAmount)
+      return acc + diff
+    }, 0)
+
+    const profitMargin = totalRevenueMXN > 0 
+      ? Math.round((totalGrossProfit / totalRevenueMXN) * 100) 
+      : 0
 
     const redemptionRate = totalCouponsIssued && totalCouponsIssued > 0
       ? Math.round(((totalCouponsRedeemed || 0) / totalCouponsIssued) * 100)
@@ -111,9 +129,11 @@ adminRouter.get('/metrics', async (c) => {
       const clientName = p.usuarios?.nombre_completo || p.nombre_cliente || (isAnon ? 'Venta Directa' : 'Cliente Registrado')
       const clientPhone = p.usuarios?.telefono || ''
       const cupcakesQty = p.cantidad_cupcakes || 0
-      const totalAmount = Number(p.monto_total || cupcakesQty * 20)
-      const spinsGranted = p.tiros_otorgados ?? (isAnon ? 0 : Math.floor(cupcakesQty / 2))
+      const totalAmount = Number(p.monto_total !== undefined ? p.monto_total : cupcakesQty * unitPrice)
+      const spinsGranted = p.tiros_otorgados ?? 0
       const createdAt = p.fecha_creacion || new Date().toISOString()
+      const regularSubtotal = cupcakesQty * unitPrice
+      const discountGiven = Math.max(0, regularSubtotal - totalAmount)
 
       return {
         id: p.id,
@@ -131,6 +151,7 @@ adminRouter.get('/metrics', async (c) => {
         monto_total: totalAmount,
         spins_granted: spinsGranted,
         tiros_otorgados: spinsGranted,
+        discount_amount: discountGiven,
         registrado_por: p.registrado_por,
       }
     })
@@ -142,6 +163,12 @@ adminRouter.get('/metrics', async (c) => {
       redemption_rate: redemptionRate,
       total_cupcakes_sold: totalCupcakesSold,
       total_revenue_mxn: totalRevenueMXN,
+      total_production_cost_mxn: Math.round(totalProductionCost * 100) / 100,
+      total_gross_profit_mxn: Math.round(totalGrossProfit * 100) / 100,
+      total_discounts_granted_mxn: Math.round(totalDiscountsGranted * 100) / 100,
+      profit_margin: profitMargin,
+      unit_cost_cupcake: unitCost,
+      unit_price_cupcake: unitPrice,
       games_enabled: gamesEnabled,
       daily_production_limit: dailyLimit,
       current_stock: currentStock,
@@ -270,8 +297,8 @@ const handleRegisterPurchase = async (c: any) => {
     let client_name = body.client_name || body.customer_name || body.nombre_cliente
     const cupcakes_qty = Number(body.cupcakes_qty || body.cantidad_cupcakes || 1)
     const unit_price = Number(body.unit_price || 20.00)
-    const total_amount = Number(body.total_amount || body.monto_total || cupcakes_qty * unit_price)
     const admin_id = body.admin_id
+    const couponTarget = body.coupon_id || body.coupon_code || body.couponId
 
     const qty = Number(cupcakes_qty)
     if (!qty || qty <= 0) {
@@ -281,11 +308,83 @@ const handleRegisterPurchase = async (c: any) => {
     serverCache.invalidate('admin_metrics')
 
     const isAnonymous = !user_id || user_id === 'anonymous' || user_id === 'unregistered'
-    const spinsGranted = body.spins_granted !== undefined 
-      ? Number(body.spins_granted) 
-      : (isAnonymous ? 0 : Math.floor(qty / 2))
+    
+    // 1. Resolver cupón si se proporcionó
+    let redeemedCoupon: any = null
+    let couponDiscount = 0
+    let isPromoCoupon = false
+    let promoCoveredQty = 0
 
-    // Si es cliente registrado y no tenemos su nombre, consultarlo
+    if (couponTarget) {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(couponTarget).trim())
+      let q = supabaseServer
+        .from('cupones')
+        .select('*, premio:premios(*, productos(*))')
+        
+      if (isUUID) {
+        q = q.or(`id.eq.${couponTarget},codigo.eq.${couponTarget}`)
+      } else {
+        q = q.or(`codigo.eq.${couponTarget},token_qr.eq.${couponTarget},codigo.eq.${String(couponTarget).toUpperCase()}`)
+      }
+
+      const { data: cup } = await q.single()
+      if (cup && cup.estado === 'activo') {
+        redeemedCoupon = cup
+        isPromoCoupon = true
+        const p = cup.premio
+
+        // Descuento exacto y piezas amparadas directamente desde la base de datos
+        promoCoveredQty = Number(p?.piezas_amparadas ?? 1)
+        
+        if (p?.descuento_monto !== undefined && p?.descuento_monto !== null && Number(p.descuento_monto) > 0) {
+          couponDiscount = Number(p.descuento_monto)
+        } else if (p?.tipo_beneficio === 'precio_promocional' && p?.precio_promocional) {
+          const regularPriceForPieces = (p?.productos?.precio ? Number(p.productos.precio) : unit_price) * promoCoveredQty
+          couponDiscount = Math.max(0, regularPriceForPieces - Number(p.precio_promocional))
+        } else if (p?.tipo_beneficio === 'producto_gratis') {
+          const itemPrice = p?.productos?.precio ? Number(p.productos.precio) : unit_price
+          couponDiscount = itemPrice * (promoCoveredQty || 1)
+        } else if (p?.tipo_beneficio === 'descuento_fijo' && p?.descuento_monto) {
+          couponDiscount = Number(p.descuento_monto)
+        } else if (body.discount_amount !== undefined) {
+          couponDiscount = Number(body.discount_amount)
+        }
+
+        // Marcar cupón como canjeado atómicamente
+        await supabaseServer
+          .from('cupones')
+          .update({
+            estado: 'canjeado',
+            fecha_canje: new Date().toISOString(),
+            canjeado_por: admin_id && admin_id.length === 36 ? admin_id : null
+          })
+          .eq('id', cup.id)
+      }
+    }
+
+    // 2. Calcular monto total real a cobrar en caja (considerando descuentos)
+    const baseSubtotal = qty * unit_price
+    let total_amount = baseSubtotal
+    if (body.total_amount !== undefined) {
+      total_amount = Number(body.total_amount)
+    } else if (couponDiscount > 0) {
+      total_amount = Math.max(0, baseSubtotal - couponDiscount)
+    }
+
+    // 3. Regla de Negocio de Tiradas:
+    // Las promociones/descuentos NO otorgan tiradas de bono.
+    // Solo piezas regulares adicionales fuera de la promo otorgan 1 tiro por cada 2 pzas.
+    let spinsGranted = 0
+    if (body.spins_granted !== undefined) {
+      spinsGranted = Number(body.spins_granted)
+    } else if (isPromoCoupon) {
+      const extraRegularQty = Math.max(0, qty - promoCoveredQty)
+      spinsGranted = isAnonymous ? 0 : Math.floor(extraRegularQty / 2)
+    } else {
+      spinsGranted = isAnonymous ? 0 : Math.floor(qty / 2)
+    }
+
+    // 4. Si es cliente registrado y no tenemos su nombre, consultarlo y actualizar perfil
     let updatedProfile = null
     if (!isAnonymous && user_id) {
       const { data: profile } = await supabaseServer
@@ -322,7 +421,7 @@ const handleRegisterPurchase = async (c: any) => {
 
     const producto_id = body.producto_id || body.productId
 
-    // 1. Insertar registro de compra en tabla 'compras'
+    // 5. Insertar registro de compra en tabla 'compras'
     const { data: purchaseData, error: purchaseError } = await supabaseServer
       .from('compras')
       .insert({
@@ -342,7 +441,7 @@ const handleRegisterPurchase = async (c: any) => {
       console.error('Error insertando compra en Supabase:', purchaseError)
     }
 
-    // 2. Descontar del stock disponible en configuracion_sistema
+    // 6. Descontar del stock disponible en configuracion_sistema
     const { data: stockSetting } = await supabaseServer
       .from('configuracion_sistema')
       .select('valor')
@@ -367,10 +466,12 @@ const handleRegisterPurchase = async (c: any) => {
       spins_granted: spinsGranted,
       total_spins: updatedProfile?.tiros_disponibles || 0,
       total_amount: total_amount,
+      discount_amount: couponDiscount,
+      redeemed_coupon: redeemedCoupon,
       current_stock: newStock,
       message: isAnonymous
-        ? `Venta directa de ${qty} cupcake(s) ($${total_amount} MXN) registrada. Stock restante: ${newStock} pcs.`
-        : `Compra de ${qty} cupcake(s) registrada a ${finalClientName}. +${spinsGranted} jugada(s) acreditada(s).`
+        ? `Venta directa de ${qty} cupcake(s) ($${total_amount} MXN${couponDiscount > 0 ? ` - Ahorro: $${couponDiscount}` : ''}) registrada. Stock restante: ${newStock} pcs.`
+        : `Compra de ${qty} cupcake(s) registrada a ${finalClientName}. +${spinsGranted} jugada(s) acreditada(s)${couponDiscount > 0 ? ` (Promo aplicada: -$${couponDiscount} MXN)` : ''}.`
     })
 
   } catch (err: any) {
@@ -382,6 +483,74 @@ const handleRegisterPurchase = async (c: any) => {
 // Montar en ambos endpoints para total retrocompatibilidad
 adminRouter.post('/register-purchase', handleRegisterPurchase)
 adminRouter.post('/purchases', handleRegisterPurchase)
+
+// Añadir o ajustar tiradas a un cliente manualmente por el Administrador
+adminRouter.post('/grant-spins', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}))
+    const { user_id, spins_to_add, spins } = body
+    const targetUserId = user_id || body.id
+
+    if (!targetUserId) {
+      return c.json({ error: 'Se requiere el ID del cliente.' }, 400)
+    }
+
+    const qtyToAdd = spins_to_add !== undefined ? Number(spins_to_add) : Number(spins || 0)
+    if (isNaN(qtyToAdd)) {
+      return c.json({ error: 'Cantidad de tiros inválida.' }, 400)
+    }
+
+    // Obtener usuario actual
+    const { data: user, error: fetchErr } = await supabaseServer
+      .from('usuarios')
+      .select('*')
+      .eq('id', targetUserId)
+      .single()
+
+    if (fetchErr || !user) {
+      return c.json({ error: 'Cliente no encontrado en la base de datos.' }, 404)
+    }
+
+    const currentSpins = user.tiros_disponibles || 0
+    const newSpins = Math.max(0, currentSpins + qtyToAdd)
+
+    const { data: updatedUser, error: updateErr } = await supabaseServer
+      .from('usuarios')
+      .update({
+        tiros_disponibles: newSpins,
+        fecha_actualizacion: new Date().toISOString()
+      })
+      .eq('id', targetUserId)
+      .select('*')
+      .single()
+
+    if (updateErr || !updatedUser) {
+      return c.json({ error: 'Error al actualizar los tiros del cliente.' }, 500)
+    }
+
+    serverCache.invalidate('admin_metrics')
+
+    return c.json({
+      success: true,
+      message: `¡Se ${qtyToAdd >= 0 ? 'acreditaron +' : 'descontaron '}${qtyToAdd} tiros a ${updatedUser.nombre_completo}! (Total: ${newSpins} tiros)`,
+      spins_available: newSpins,
+      user: {
+        id: updatedUser.id,
+        full_name: updatedUser.nombre_completo,
+        email: updatedUser.email,
+        phone: updatedUser.telefono,
+        role: updatedUser.rol === 'administrador' ? 'admin' : 'client',
+        spins_available: updatedUser.tiros_disponibles,
+        total_cupcakes_purchased: updatedUser.total_cupcakes_comprados || 0,
+        created_at: updatedUser.fecha_creacion,
+        updated_at: updatedUser.fecha_actualizacion
+      }
+    })
+  } catch (err: any) {
+    console.error('Error al otorgar tiros:', err)
+    return c.json({ error: 'Error interno en el servidor.' }, 500)
+  }
+})
 
 // Ajustar pesos de probabilidad de premios
 adminRouter.post('/update-prize-weight', async (c) => {
@@ -470,7 +639,8 @@ export async function rebalancePrizesByCategory() {
     const updatePromises = Object.entries(groups).map(async ([cat, ids]) => {
       if (ids.length === 0) return
       const totalCatWeight = categoryWeights[cat] !== undefined ? Number(categoryWeights[cat]) : 0
-      const weightPerPrize = Math.round((totalCatWeight / ids.length) * 100) / 100
+      // Usar Math.round para respetar el tipo INTEGER de la columna en PostgreSQL
+      const weightPerPrize = ids.length > 0 ? Math.round(totalCatWeight / ids.length) : 0
       
       return supabaseServer
         .from('premios')
@@ -562,33 +732,65 @@ adminRouter.get('/prizes', async (c) => {
     // Rebalancear para garantizar sincronización de pesos antiguos
     await rebalancePrizesByCategory()
 
-    const { data: prizes, error } = await supabaseServer
-      .from('premios')
-      .select(`
-        *,
-        productos (
-          id,
-          nombre
-        )
-      `)
-      .order('fecha_creacion', { ascending: true })
+    const [prizesRes, configRes] = await Promise.all([
+      supabaseServer
+        .from('premios')
+        .select(`
+          *,
+          productos (
+            id,
+            nombre
+          )
+        `)
+        .order('fecha_creacion', { ascending: true }),
+      supabaseServer
+        .from('configuracion_sistema')
+        .select('valor')
+        .eq('clave', 'probabilidades_categoria')
+        .maybeSingle()
+    ])
 
-    if (error) {
+    if (prizesRes.error) {
       return c.json({ error: 'Error al consultar premios.' }, 500)
     }
 
-    const formatted = (prizes || []).map((p: any) => ({
-      id: p.id,
-      title: p.titulo,
-      description: p.descripcion,
-      producto_id: p.producto_id || null,
-      producto_nombre: p.productos?.nombre || null,
-      tier: toAppTier(p.categoria_nivel),
-      weight: p.peso_probabilidad,
-      badge_color: p.color_distintivo,
-      is_active: p.activo,
-      created_at: p.fecha_creacion
-    }))
+    const categoryWeights: Record<string, number> = configRes.data?.valor || {
+      sin_premio: 60,
+      promocion: 30,
+      alto_valor: 10
+    }
+
+    const prizes = prizesRes.data || []
+    const activeCountByCat: Record<string, number> = { sin_premio: 0, promocion: 0, alto_valor: 0 }
+    prizes.filter(p => p.activo).forEach((p: any) => {
+      const cat = toDbTier(p.categoria_nivel)
+      activeCountByCat[cat] = (activeCountByCat[cat] || 0) + 1
+    })
+
+    const formatted = prizes.map((p: any) => {
+      const cat = toDbTier(p.categoria_nivel)
+      const count = activeCountByCat[cat] || 1
+      const totalCatWeight = categoryWeights[cat] !== undefined ? Number(categoryWeights[cat]) : 0
+      const exactWeight = p.activo ? Math.round((totalCatWeight / count) * 100) / 100 : 0
+
+      return {
+        id: p.id,
+        title: p.titulo,
+        description: p.descripcion,
+        producto_id: p.producto_id || null,
+        producto_nombre: p.productos?.nombre || null,
+        producto_precio: p.productos?.precio || null,
+        tier: toAppTier(p.categoria_nivel),
+        tipo_beneficio: p.tipo_beneficio || 'descuento_fijo',
+        precio_promocional: p.precio_promocional !== undefined && p.precio_promocional !== null ? Number(p.precio_promocional) : null,
+        descuento_monto: p.descuento_monto !== undefined && p.descuento_monto !== null ? Number(p.descuento_monto) : 0,
+        piezas_amparadas: p.piezas_amparadas !== undefined && p.piezas_amparadas !== null ? Number(p.piezas_amparadas) : 1,
+        weight: exactWeight,
+        badge_color: p.color_distintivo,
+        is_active: p.activo,
+        created_at: p.fecha_creacion
+      }
+    })
 
     serverCache.set('admin_prizes', formatted, 300)
     return c.json({ prizes: formatted })
@@ -600,7 +802,17 @@ adminRouter.get('/prizes', async (c) => {
 // Crear nuevo premio o promoción (y rebalancear equitativamente en su categoría)
 adminRouter.post('/prizes', async (c) => {
   try {
-    const { title, description, tier, badge_color, producto_id } = await c.req.json()
+    const { 
+      title, 
+      description, 
+      tier, 
+      badge_color, 
+      producto_id,
+      tipo_beneficio,
+      precio_promocional,
+      descuento_monto,
+      piezas_amparadas
+    } = await c.req.json()
 
     if (!title || !tier) {
       return c.json({ error: 'Faltan campos obligatorios para el premio.' }, 400)
@@ -620,6 +832,10 @@ adminRouter.post('/prizes', async (c) => {
         titulo: title,
         descripcion: description || title,
         categoria_nivel: normTier,
+        tipo_beneficio: tipo_beneficio || 'descuento_fijo',
+        precio_promocional: precio_promocional !== undefined && precio_promocional !== '' ? Number(precio_promocional) : null,
+        descuento_monto: descuento_monto !== undefined && descuento_monto !== '' ? Number(descuento_monto) : 0,
+        piezas_amparadas: piezas_amparadas !== undefined && piezas_amparadas !== '' ? Number(piezas_amparadas) : 1,
         peso_probabilidad: 10, // Se recalculará inmediatamente
         color_distintivo: badge_color || '#F56B2A',
         producto_id: assignedProductId,
@@ -643,7 +859,8 @@ adminRouter.post('/prizes', async (c) => {
         *,
         productos (
           id,
-          nombre
+          nombre,
+          precio
         )
       `)
       .eq('id', data.id)
@@ -659,7 +876,12 @@ adminRouter.post('/prizes', async (c) => {
         description: prizeResult.descripcion,
         producto_id: prizeResult.producto_id || null,
         producto_nombre: prizeResult.productos?.nombre || null,
+        producto_precio: prizeResult.productos?.precio || null,
         tier: toAppTier(prizeResult.categoria_nivel),
+        tipo_beneficio: prizeResult.tipo_beneficio || 'descuento_fijo',
+        precio_promocional: prizeResult.precio_promocional !== null ? Number(prizeResult.precio_promocional) : null,
+        descuento_monto: prizeResult.descuento_monto !== null ? Number(prizeResult.descuento_monto) : 0,
+        piezas_amparadas: prizeResult.piezas_amparadas !== null ? Number(prizeResult.piezas_amparadas) : 1,
         weight: prizeResult.peso_probabilidad,
         badge_color: prizeResult.color_distintivo,
         is_active: prizeResult.activo,
@@ -688,6 +910,16 @@ adminRouter.put('/prizes/:id', async (c) => {
     if (body.tier !== undefined) updateData.categoria_nivel = toDbTier(body.tier)
     if (body.badge_color !== undefined) updateData.color_distintivo = body.badge_color
     if (body.is_active !== undefined) updateData.activo = Boolean(body.is_active)
+    if (body.tipo_beneficio !== undefined) updateData.tipo_beneficio = body.tipo_beneficio
+    if (body.precio_promocional !== undefined) {
+      updateData.precio_promocional = body.precio_promocional !== '' && body.precio_promocional !== null ? Number(body.precio_promocional) : null
+    }
+    if (body.descuento_monto !== undefined) {
+      updateData.descuento_monto = body.descuento_monto !== '' && body.descuento_monto !== null ? Number(body.descuento_monto) : 0
+    }
+    if (body.piezas_amparadas !== undefined) {
+      updateData.piezas_amparadas = body.piezas_amparadas !== '' && body.piezas_amparadas !== null ? Number(body.piezas_amparadas) : 1
+    }
     if (body.producto_id !== undefined) {
       updateData.producto_id = (body.tier === 'tier_50_no_prize' || !body.producto_id) ? null : body.producto_id
     }
@@ -713,13 +945,35 @@ adminRouter.put('/prizes/:id', async (c) => {
         *,
         productos (
           id,
-          nombre
+          nombre,
+          precio
         )
       `)
       .eq('id', id)
       .single()
 
     const prizeResult: any = updatedPrize || data
+
+    return c.json({ 
+      success: true, 
+      prize: {
+        id: prizeResult.id,
+        title: prizeResult.titulo,
+        description: prizeResult.descripcion,
+        producto_id: prizeResult.producto_id || null,
+        producto_nombre: prizeResult.productos?.nombre || null,
+        producto_precio: prizeResult.productos?.precio || null,
+        tier: toAppTier(prizeResult.categoria_nivel),
+        tipo_beneficio: prizeResult.tipo_beneficio || 'descuento_fijo',
+        precio_promocional: prizeResult.precio_promocional !== null ? Number(prizeResult.precio_promocional) : null,
+        descuento_monto: prizeResult.descuento_monto !== null ? Number(prizeResult.descuento_monto) : 0,
+        piezas_amparadas: prizeResult.piezas_amparadas !== null ? Number(prizeResult.piezas_amparadas) : 1,
+        weight: prizeResult.peso_probabilidad,
+        badge_color: prizeResult.color_distintivo,
+        is_active: prizeResult.activo,
+        created_at: prizeResult.fecha_creacion
+      }
+    })
 
     return c.json({ 
       success: true, 

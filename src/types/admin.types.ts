@@ -11,23 +11,44 @@ export interface AdminMetrics {
   weekly_cupcakes_sold?: number
   weekly_revenue_mxn?: number
   total_revenue_mxn?: number
+  total_production_cost_mxn?: number
+  total_gross_profit_mxn?: number
+  total_discounts_granted_mxn?: number
+  profit_margin?: number
+  unit_cost_cupcake?: number
+  unit_price_cupcake?: number
   active_coupons?: number
   total_coupons_issued?: number
   total_coupons_redeemed?: number
   conversion_rate?: number
   redemption_rate?: number
   unit_price?: number
-  weekly_breakdown?: Array<{ day: string; cupcakes: number; revenue: number }>
+  weekly_breakdown?: Array<{ 
+    day: string
+    label?: string
+    cupcakes: number
+    revenue: number
+    registered_cupcakes?: number
+    unregistered_cupcakes?: number 
+  }>
   recent_purchases?: Array<{
     id: string
     created_at: string
+    fecha_creacion?: string
     user_id?: string
+    usuario_id?: string
+    is_anonymous?: boolean
     client_name?: string
+    nombre_cliente?: string
+    customer_name?: string
+    customer_phone?: string
     cupcakes_qty?: number
     cantidad_cupcakes?: number
     total_amount?: number
     monto_total?: number
     spins_granted?: number
     tiros_otorgados?: number
+    discount_amount?: number
+    registrado_por?: string
   }>
 }
