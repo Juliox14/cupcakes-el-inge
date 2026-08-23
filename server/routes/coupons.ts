@@ -5,27 +5,32 @@ import { requireAdmin } from '../lib/authMiddleware.js'
 
 export const couponsRouter = new Hono()
 
-// Validar cupón por código alfanumérico o token QR
-couponsRouter.post('/verify', async (c) => {
+// Helper de verificación de cupón
+async function verifyCouponByInput(rawInput: string, c: any) {
   try {
-    const { code_or_token } = await c.req.json()
-
-    if (!code_or_token || typeof code_or_token !== 'string') {
+    if (!rawInput || typeof rawInput !== 'string') {
       return c.json({ error: 'Proporcione un código o QR válido.' }, 400)
     }
 
-    const cleanInput = code_or_token.trim()
+    const cleanInput = rawInput.trim()
+    const cleanUpper = cleanInput.toUpperCase()
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanInput)
 
-    // Buscar cupón por código o por token_qr (con relación foránea explícita de usuario_id)
-    const { data: coupon, error } = await supabaseServer
+    let query = supabaseServer
       .from('cupones')
       .select(`
         *,
         premio:premios(*),
         usuario:usuarios!cupones_usuario_id_fkey(*)
       `)
-      .or(`codigo.eq.${cleanInput},token_qr.eq.${cleanInput}`)
-      .single()
+
+    if (isUUID) {
+      query = query.or(`id.eq.${cleanInput},codigo.eq.${cleanInput},token_qr.eq.${cleanInput},codigo.eq.${cleanUpper}`)
+    } else {
+      query = query.or(`codigo.eq.${cleanInput},token_qr.eq.${cleanInput},codigo.eq.${cleanUpper},token_qr.eq.${cleanUpper}`)
+    }
+
+    const { data: coupon, error } = await query.single()
 
     if (error || !coupon) {
       return c.json({ 
@@ -102,16 +107,49 @@ couponsRouter.post('/verify', async (c) => {
     console.error('Error al verificar cupón:', err)
     return c.json({ error: 'Error al verificar el cupón.' }, 500)
   }
+}
+
+// 1. Validar cupón por POST body { code_or_token } o { code }
+couponsRouter.post('/verify', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const code = body.code_or_token || body.code || body.token_qr || ''
+  return verifyCouponByInput(code, c)
 })
 
-// Canjear cupón en tiempo real (exclusivo para Administrador / Caja)
+// 2. Validar cupón por GET /api/coupons/verify/:code
+couponsRouter.get('/verify/:code', async (c) => {
+  const code = c.req.param('code')
+  return verifyCouponByInput(code, c)
+})
+
+// 3. Canjear cupón en tiempo real (exclusivo para Administrador / Caja)
 couponsRouter.post('/redeem', requireAdmin, async (c) => {
   try {
     const authUser: any = (c.get as any)('user')
-    const { coupon_id, admin_id } = await c.req.json()
+    const body = await c.req.json().catch(() => ({}))
+    const rawTarget = body.coupon_id || body.code || body.code_or_token || body.id || ''
 
-    if (!coupon_id) {
+    if (!rawTarget) {
       return c.json({ error: 'Faltan parámetros requeridos para el canje.' }, 400)
+    }
+
+    const cleanInput = String(rawTarget).trim()
+    const cleanUpper = cleanInput.toUpperCase()
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanInput)
+
+    // Si no es UUID, resolver ID primero
+    let targetId = cleanInput
+    if (!isUUID) {
+      const { data: found } = await supabaseServer
+        .from('cupones')
+        .select('id')
+        .or(`codigo.eq.${cleanInput},token_qr.eq.${cleanInput},codigo.eq.${cleanUpper},token_qr.eq.${cleanUpper}`)
+        .single()
+
+      if (!found) {
+        return c.json({ error: 'Cupón no encontrado para canjear.' }, 404)
+      }
+      targetId = found.id
     }
 
     // Actualizar estado del cupón
@@ -120,13 +158,14 @@ couponsRouter.post('/redeem', requireAdmin, async (c) => {
       .update({
         estado: 'canjeado',
         fecha_canje: new Date().toISOString(),
-        canjeado_por: authUser?.id || (admin_id && admin_id.length === 36 ? admin_id : null)
+        canjeado_por: authUser?.id || (body.admin_id && body.admin_id.length === 36 ? body.admin_id : null)
       })
-      .eq('id', coupon_id)
+      .eq('id', targetId)
       .select('*, premio:premios(*), usuario:usuarios!cupones_usuario_id_fkey(*)')
       .single()
 
     if (updateError) {
+      console.error('Error al canjear cupón en Supabase:', updateError)
       return c.json({ error: 'Error al procesar el canje del cupón.' }, 500)
     }
 
