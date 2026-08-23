@@ -31,6 +31,7 @@ import {
   updateCategoryWeightsApi,
   getProductsApi
 } from '../../lib/api'
+import { toast } from '../../context/ToastContext'
 
 interface AdminPromotionsManagerProps {
   prizes: Prize[]
@@ -283,6 +284,7 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
           badge_color: badgeColor,
           is_active: isActive,
         })
+        toast.success(`Promoción "${title}" actualizada con éxito.`)
       } else {
         await createPrizeApi({
           title,
@@ -291,11 +293,14 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
           producto_id: finalProductId,
           badge_color: badgeColor,
         })
+        toast.success(`Promoción "${title}" creada con éxito.`)
       }
 
       onRefresh()
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error al guardar la promoción.')
+      const msg = err.message || 'Error al guardar la promoción.'
+      setErrorMsg(msg)
+      toast.error(msg)
       onRefresh() // revertir
     } finally {
       setLoading(false)
@@ -315,14 +320,18 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
         alto_valor: Number(categoryWeights.alto_valor)
       })
 
-      setCategorySuccessMsg(res.message || 'Probabilidades actualizadas y repartidas equitativamente.')
+      const msg = res.message || 'Probabilidades actualizadas y repartidas equitativamente.'
+      setCategorySuccessMsg(msg)
+      toast.success(msg)
       onRefresh()
       setTimeout(() => {
         setIsCategoryModalOpen(false)
         setCategorySuccessMsg(null)
       }, 800)
     } catch (err: any) {
-      setCategoryModalError(err.message || 'Error al actualizar las probabilidades.')
+      const msg = err.message || 'Error al actualizar las probabilidades.'
+      setCategoryModalError(msg)
+      toast.error(msg)
     } finally {
       setSavingCategoryWeights(false)
     }
@@ -336,9 +345,11 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     // 2. Enviar en segundo plano
     try {
       await updatePrizeApi(prize.id, { is_active: !prize.is_active })
+      toast.success(`Promoción ${!prize.is_active ? 'activada' : 'pausada'} correctamente.`)
       onRefresh()
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
+      toast.error('Error al cambiar estado de la promoción.')
       onRefresh() // revertir
     }
   }
@@ -353,9 +364,11 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     // 2. Ejecutar en segundo plano
     try {
       await deletePrizeApi(id)
+      toast.success('Promoción eliminada y probabilidades redistribuidas.')
       onRefresh()
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
+      toast.error('Error al eliminar la promoción.')
       onRefresh() // revertir
     }
   }

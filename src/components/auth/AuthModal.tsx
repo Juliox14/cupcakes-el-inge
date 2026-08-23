@@ -5,11 +5,11 @@ import {
   Phone, 
   Lock, 
   X, 
-  Sparkles,
   ShieldCheck
 } from 'lucide-react'
 import { registerUserApi, loginUserApi } from '../../lib/api'
 import type { UserProfile, Coupon } from '../../types'
+import { toast } from '../../context/ToastContext'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -47,7 +47,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
   if (!isOpen) return null
 
@@ -61,7 +60,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     setLoading(true)
     setErrorMsg(null)
-    setSuccessMsg(null)
 
     try {
       const res = await loginUserApi({
@@ -69,14 +67,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password: password.trim()
       })
 
-      setSuccessMsg(res.message)
-      setTimeout(() => {
-        handleSuccess(res.user, res.coupons)
-        onClose()
-        if (res.user.role === 'admin' && onNavigateToAdmin) {
-          onNavigateToAdmin()
-        }
-      }, 700)
+      toast.success('¡Inicio de sesión exitoso!', `Bienvenido ${res.user.full_name.split(' ')[0]}`)
+      handleSuccess(res.user, res.coupons)
+      onClose()
+      if (res.user.role === 'admin' && onNavigateToAdmin) {
+        onNavigateToAdmin()
+      }
     } catch (err: any) {
       // Fallback local si el usuario existe en memoria
       const cleanId = identifier.trim()
@@ -88,16 +84,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       )
 
       if (found) {
-        setSuccessMsg(`¡Bienvenido de vuelta, ${found.full_name.split(' ')[0]}!`)
-        setTimeout(() => {
-          handleSuccess(found)
-          onClose()
-          if (found.role === 'admin' && onNavigateToAdmin) {
-            onNavigateToAdmin()
-          }
-        }, 700)
+        toast.success('¡Inicio de sesión exitoso!', `Bienvenido de vuelta, ${found.full_name.split(' ')[0]}`)
+        handleSuccess(found)
+        onClose()
+        if (found.role === 'admin' && onNavigateToAdmin) {
+          onNavigateToAdmin()
+        }
       } else {
-        setErrorMsg(err.message || 'Usuario no encontrado o contraseña incorrecta.')
+        const errTxt = err.message || 'Usuario no encontrado o contraseña incorrecta.'
+        setErrorMsg(errTxt)
+        toast.error('Error al iniciar sesión', errTxt)
       }
     } finally {
       setLoading(false)
@@ -108,24 +104,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
-      setErrorMsg('Todos los campos son obligatorios.')
+      const msg = 'Todos los campos son obligatorios.'
+      setErrorMsg(msg)
+      toast.warning('Campos incompletos', msg)
       return
     }
 
     const cleanPhone = phone.replace(/\D/g, '').slice(-10)
     if (cleanPhone.length < 10) {
-      setErrorMsg('Ingresa un número de teléfono válido a 10 dígitos.')
+      const msg = 'Ingresa un número de teléfono válido a 10 dígitos.'
+      setErrorMsg(msg)
+      toast.warning('Teléfono inválido', msg)
       return
     }
 
     if (!email.includes('@')) {
-      setErrorMsg('Ingresa un correo electrónico válido.')
+      const msg = 'Ingresa un correo electrónico válido.'
+      setErrorMsg(msg)
+      toast.warning('Correo inválido', msg)
       return
     }
 
     setLoading(true)
     setErrorMsg(null)
-    setSuccessMsg(null)
 
     try {
       const res = await registerUserApi({
@@ -135,11 +136,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password: password.trim()
       })
 
-      setSuccessMsg(res.message)
-      setTimeout(() => {
-        handleSuccess(res.user, res.coupons)
-        onClose()
-      }, 800)
+      toast.success('¡Registro exitoso!', 'Tienes 1 tiro de bienvenida en la ruleta 🥕')
+      handleSuccess(res.user, res.coupons)
+      onClose()
     } catch (err: any) {
       // Fallback local
       const newUserId = `user-${cleanPhone}`
@@ -155,11 +154,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         updated_at: new Date().toISOString()
       }
 
-      setSuccessMsg('¡Registro exitoso! Tienes 1 tiro de bienvenida en la ruleta 🥕')
-      setTimeout(() => {
-        handleSuccess(localUser)
-        onClose()
-      }, 800)
+      toast.success('¡Registro exitoso!', 'Tienes 1 tiro de bienvenida en la ruleta 🥕')
+      handleSuccess(localUser)
+      onClose()
     } finally {
       setLoading(false)
     }
@@ -169,13 +166,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!adminPin.trim()) {
-      setErrorMsg('Por favor ingresa tu contraseña o PIN de administrador.')
+      const msg = 'Por favor ingresa tu contraseña o PIN de administrador.'
+      setErrorMsg(msg)
+      toast.warning('PIN requerido', msg)
       return
     }
 
     setLoading(true)
     setErrorMsg(null)
-    setSuccessMsg(null)
 
     try {
       // Intentar autenticar con el backend
@@ -185,17 +183,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       })
 
       if (res.user.role === 'admin') {
-        setSuccessMsg('¡Acceso concedido como Administrador!')
-        setTimeout(() => {
-          handleSuccess(res.user, res.coupons)
-          onClose()
-          if (onNavigateToAdmin) onNavigateToAdmin()
-        }, 600)
+        toast.success('¡Acceso concedido!', 'Bienvenido al panel administrativo SIPAD')
+        handleSuccess(res.user, res.coupons)
+        onClose()
+        if (onNavigateToAdmin) onNavigateToAdmin()
       } else {
-        setErrorMsg('El usuario no cuenta con privilegios de administrador.')
+        const msg = 'El usuario no cuenta con privilegios de administrador.'
+        setErrorMsg(msg)
+        toast.error('Acceso denegado', msg)
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Contraseña o PIN de administrador incorrecto.')
+      const msg = err.message || 'Contraseña o PIN de administrador incorrecto.'
+      setErrorMsg(msg)
+      toast.error('Credenciales incorrectas', msg)
     } finally {
       setLoading(false)
     }
@@ -203,23 +203,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-      {/* Fondo con desenfoque */}
+      {/* FONDO OSCURO BLUR */}
       <div 
         onClick={onClose}
         className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity" 
       />
 
-      {/* Contenedor Principal (Estilo de la Referencia 100% en Español) */}
+      {/* CONTENEDOR PRINCIPAL */}
       <div className="relative w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl bg-white p-5 sm:p-6 text-black my-auto z-10 border border-orange-400">
         {/* Botón Cerrar */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-black/80 hover:text-black p-1.5 rounded-full hover:bg-white/10 transition z-20"
+          className="absolute top-4 right-4 text-black/80 hover:text-black p-1.5 rounded-full hover:bg-black/5 transition z-20 cursor-pointer"
         >
           <X size={18} />
         </button>
 
-        {/* Encabezado con Logo y Título en Español */}
+        {/* Encabezado con Logo */}
         <div className="text-center pt-2 pb-4 space-y-1.5">
           <img
             src="/logo-completo.png"
@@ -238,18 +238,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </p>
         </div>
 
-        {/* TARJETA BLANCA FLOTANTE */}
-        <div className="bg-white rounded-[28px] p-6 text-gray-900 shadow-xl space-y-4">
+        {/* CUERPO DEL MODAL */}
+        <div className="space-y-4">
           {errorMsg && (
             <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold">
               {errorMsg}
-            </div>
-          )}
-
-          {successMsg && (
-            <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-1.5">
-              <Sparkles size={14} className="text-emerald-600 shrink-0" />
-              <span>{successMsg}</span>
             </div>
           )}
 
@@ -304,7 +297,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onClick={() => {
                       setAuthMode('register')
                       setErrorMsg(null)
-                      setSuccessMsg(null)
                     }}
                     className="text-[#F56B2A] font-bold hover:underline"
                   >
@@ -318,7 +310,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onClick={() => {
                       setAuthMode('admin')
                       setErrorMsg(null)
-                      setSuccessMsg(null)
                     }}
                     className="text-[11px] text-gray-400 hover:text-gray-700 font-semibold"
                   >
@@ -409,7 +400,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     onClick={() => {
                       setAuthMode('login')
                       setErrorMsg(null)
-                      setSuccessMsg(null)
                     }}
                     className="text-[#F56B2A] font-bold hover:underline"
                   >
@@ -462,7 +452,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onClick={() => {
                     setAuthMode('login')
                     setErrorMsg(null)
-                    setSuccessMsg(null)
                   }}
                   className="text-xs text-gray-500 hover:text-gray-800 font-bold"
                 >

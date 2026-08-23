@@ -20,6 +20,7 @@ import {
   registerPurchaseApi 
 } from '../../lib/api'
 import type { Coupon, UserProfile } from '../../types'
+import { toast } from '../../context/ToastContext'
 
 interface QRScannerModalProps {
   adminId: string
@@ -48,15 +49,11 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     coupon?: Coupon
   } | null>(null)
   const [redeeming, setRedeeming] = useState(false)
-  const [redeemSuccessMsg, setRedeemSuccessMsg] = useState<string | null>(null)
 
   // Estado para cliente detectado (Tarjeta Dual)
   const [detectedClient, setDetectedClient] = useState<UserProfile | null>(null)
   const [cupcakesQty, setCupcakesQty] = useState<number>(2)
   const [registeringPurchase, setRegisteringPurchase] = useState(false)
-  const [purchaseSuccessMsg, setPurchaseSuccessMsg] = useState<string | null>(null)
-
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (scanMode !== 'scan') return
@@ -96,14 +93,11 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     }
 
     setLoading(true)
-    setErrorMsg(null)
-    setRedeemSuccessMsg(null)
-    setPurchaseSuccessMsg(null)
     setVerificationResult(null)
     setDetectedClient(null)
 
     // 1. ¿Es una Tarjeta de Cliente (Dual Card)?
-    if (input.startsWith('INGE-CLIENT:') || input.startsWith('user-') || input.length === 10 && /^\d+$/.test(input)) {
+    if (input.startsWith('INGE-CLIENT:') || input.startsWith('user-') || (input.length === 10 && /^\d+$/.test(input))) {
       try {
         const res = await getClientByQueryApi(input)
         if (res.user) {
@@ -138,18 +132,22 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
           status: res.valid ? 'active' : 'invalid',
           coupon: res.coupon
         })
+        toast.success('¡Cupón VÁLIDO!', 'Listo para canjear 🎁')
       } else {
         // Intentar buscar como cliente por si era un ID
         const foundClient = allUsers.find(u => u.id === input || u.phone === input)
         if (foundClient) {
           setDetectedClient(foundClient)
+          toast.info('Cliente detectado', foundClient.full_name)
         } else {
+          const msg = res?.message || 'Cupón no válido.'
           setVerificationResult({
             valid: false,
-            message: res?.message || 'Cupón no válido.',
+            message: msg,
             status: 'invalid',
             coupon: res?.coupon
           })
+          toast.error('Cupón no válido', msg)
         }
       }
     } catch (err: any) {
@@ -157,8 +155,10 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       const foundClient = allUsers.find(u => u.id === input || u.phone === input)
       if (foundClient) {
         setDetectedClient(foundClient)
+        toast.info('Cliente detectado', foundClient.full_name)
       } else {
-        setErrorMsg(err.message || 'Código no reconocido. No coincide con un cupón ni con un cliente.')
+        const msg = err.message || 'Código no reconocido. No coincide con un cupón ni con un cliente.'
+        toast.error('Código no reconocido', msg)
       }
     } finally {
       setLoading(false)
@@ -169,15 +169,15 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   const handleRedeem = async () => {
     if (!verificationResult?.coupon) return
     setRedeeming(true)
-    setErrorMsg(null)
 
     try {
       const res = await redeemCouponApi(verificationResult.coupon.id, adminId)
-      setRedeemSuccessMsg(res.message)
+      toast.success('¡Premio canjeado con éxito!', res.message || 'El cupón ha sido aplicado.')
       setVerificationResult(prev => prev ? { ...prev, status: 'redeemed', valid: false } : null)
       onRedeemedSuccess()
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error al canjear el cupón.')
+      const msg = err.message || 'Error al canjear el cupón.'
+      toast.error('Error en el canje', msg)
     } finally {
       setRedeeming(false)
     }
@@ -187,8 +187,6 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
   const handleRegisterClientPurchase = async () => {
     if (!detectedClient || cupcakesQty <= 0) return
     setRegisteringPurchase(true)
-    setErrorMsg(null)
-    setPurchaseSuccessMsg(null)
 
     const pricePerCupcake = 20.00
     const totalAmount = cupcakesQty * pricePerCupcake
@@ -214,13 +212,14 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
       }
 
       setDetectedClient(updatedUser)
-      setPurchaseSuccessMsg(`¡Compra de ${cupcakesQty} cupcake${cupcakesQty === 1 ? '' : 's'} ($${totalAmount} MXN) registrada! Se acreditaron +${spins} jugada${spins === 1 ? '' : 's'} a ${detectedClient.full_name}.`)
+      const successText = `¡Compra de ${cupcakesQty} cupcake${cupcakesQty === 1 ? '' : 's'} ($${totalAmount} MXN) registrada! Se acreditaron +${spins} jugada${spins === 1 ? '' : 's'} a ${detectedClient.full_name}.`
+      toast.success('¡Compra registrada con éxito!', successText)
       
       if (onPurchaseSuccess) {
         onPurchaseSuccess(updatedUser, spins)
       }
       onRedeemedSuccess()
-    } catch {
+    } catch (err: any) {
       // Fallback local
       const updatedUser: UserProfile = {
         ...detectedClient,
@@ -229,7 +228,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         updated_at: new Date().toISOString()
       }
       setDetectedClient(updatedUser)
-      setPurchaseSuccessMsg(`¡Compra registrada localmente! +${spinsToGrant} tiros acreditados a ${detectedClient.full_name}.`)
+      toast.success('¡Compra registrada!', `+${spinsToGrant} tiros acreditados a ${detectedClient.full_name}.`)
       if (onPurchaseSuccess) {
         onPurchaseSuccess(updatedUser, spinsToGrant)
       }
@@ -239,25 +238,30 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
     }
   }
 
+  // Búsqueda Manual de Cliente
+  const handleManualSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!manualCode.trim()) return
+    handleProcessDecoded(manualCode.trim())
+  }
+
   // Cálculo de jugadas a otorgar
   const spinsCalculated = Math.floor(cupcakesQty / 2)
   const currentWeekly = detectedClient ? (detectedClient.total_cupcakes_purchased % 5 || (detectedClient.total_cupcakes_purchased > 0 ? 5 : 0)) : 0
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl relative space-y-4 border-4 border-[#1E1E24] max-h-[92vh] overflow-y-auto">
-        {/* Botón Cerrar */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+      <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative border-4 border-orange-100 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-1.5 rounded-full hover:bg-gray-100 transition"
-          aria-label="Cerrar"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition p-1"
         >
           <X size={20} />
         </button>
 
         {/* Encabezado */}
-        <div className="flex items-center gap-3 text-[#1E1E24]">
-          <div className="p-2.5 rounded-2xl bg-orange-100 text-[#FF6D00]">
+        <div className="flex items-center gap-3 text-gray-900 pt-1">
+          <div className="p-2.5 bg-orange-100 text-[#F56B2A] rounded-2xl">
             <QrCode size={24} />
           </div>
           <div>
@@ -269,13 +273,13 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         {/* Tabs de Modo (Cámara vs Manual) */}
         <div className="flex bg-gray-100 p-1 rounded-xl text-xs font-bold">
           <button
-            onClick={() => { setScanMode('scan'); setErrorMsg(null); }}
+            onClick={() => setScanMode('scan')}
             className={`flex-1 py-1.5 rounded-lg transition ${scanMode === 'scan' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
           >
             📷 Cámara QR
           </button>
           <button
-            onClick={() => { setScanMode('manual'); setErrorMsg(null); }}
+            onClick={() => setScanMode('manual')}
             className={`flex-1 py-1.5 rounded-lg transition ${scanMode === 'manual' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
           >
             ⌨️ Ingreso Manual
@@ -290,7 +294,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
         )}
 
         {/* 2. Entrada Manual */}
-        <div className="space-y-1.5">
+        <form onSubmit={handleManualSearch} className="space-y-1.5">
           <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
             Buscar por Teléfono, ID o Código de Cupón:
           </label>
@@ -303,15 +307,15 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
               className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-300 font-mono font-bold text-xs focus:outline-none focus:border-[#FF6D00]"
             />
             <button
-              onClick={() => handleProcessDecoded(manualCode)}
+              type="submit"
               disabled={loading || !manualCode.trim()}
-              className="px-4 py-2.5 rounded-xl bg-[#1E1E24] text-white font-bold text-xs flex items-center gap-1.5 hover:bg-[#FF6D00] transition disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl bg-[#1E1E24] text-white font-bold text-xs flex items-center gap-1.5 hover:bg-[#FF6D00] transition disabled:opacity-50 cursor-pointer"
             >
               {loading ? <RefreshCw className="animate-spin" size={14} /> : <Search size={14} />}
               Buscar
             </button>
           </div>
-        </div>
+        </form>
 
         {/* ================================================================= */}
         {/* CASO A: CLIENTE DETECTADO (TARJETA DUAL DEL CLIENTE ESCANEADA)    */}
@@ -404,13 +408,6 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 </div>
               </div>
 
-              {purchaseSuccessMsg && (
-                <div className="p-2.5 bg-green-100 border border-green-300 text-green-800 rounded-xl text-xs flex items-center gap-2">
-                  <CheckCircle2 size={16} className="shrink-0" />
-                  <span>{purchaseSuccessMsg}</span>
-                </div>
-              )}
-
               <button
                 onClick={handleRegisterClientPurchase}
                 disabled={registeringPurchase}
@@ -457,25 +454,6 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                 Confirmar y Aplicar Canje
               </button>
             )}
-          </div>
-        )}
-
-        {/* Mensajes de Éxito / Error */}
-        {purchaseSuccessMsg && (
-          <div className="p-3.5 rounded-2xl bg-green-100 border border-green-400 text-green-900 text-center font-bold text-xs animate-bounce-soft">
-            🎉 {purchaseSuccessMsg}
-          </div>
-        )}
-
-        {redeemSuccessMsg && (
-          <div className="p-3.5 rounded-2xl bg-green-100 border border-green-400 text-green-800 text-center font-bold text-xs">
-            🎉 {redeemSuccessMsg}
-          </div>
-        )}
-
-        {errorMsg && (
-          <div className="p-3 bg-red-100 border border-red-300 text-red-700 text-xs rounded-xl">
-            {errorMsg}
           </div>
         )}
       </div>

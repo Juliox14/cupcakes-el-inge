@@ -28,6 +28,7 @@ import {
 } from '../../services'
 import type { ProductoConCosto, Ingrediente } from '../../types'
 import { SlideOver } from './SlideOver'
+import { toast } from '../../context/ToastContext'
 
 // Helper de magnitudes y compatibilidad de unidades en el Frontend
 type UnitMagnitude = 'masa' | 'volumen' | 'unidades' | 'desconocido'
@@ -327,11 +328,15 @@ export const AdminProductsManager: React.FC = () => {
         activo: productForm.activo
       })
 
-      setFeedbackMsg({ text: res.message, type: 'success' })
+      const msg = res.message || 'Producto guardado exitosamente.'
+      setFeedbackMsg({ text: msg, type: 'success' })
+      toast.success(msg)
       setIsProductSlideOverOpen(false)
       loadAllData()
     } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Error al guardar producto.', type: 'error' })
+      const msg = err.message || 'Error al guardar producto.'
+      setFeedbackMsg({ text: msg, type: 'error' })
+      toast.error(msg)
     }
   }
 
@@ -341,12 +346,15 @@ export const AdminProductsManager: React.FC = () => {
     // Eliminación optimista inmediata en 0ms
     setProducts(prev => prev.filter(p => p.id !== id))
     setFeedbackMsg({ text: 'Producto eliminado.', type: 'success' })
+    toast.success('Producto eliminado correctamente.')
 
     try {
       await deleteProductApi(id)
       loadAllData()
     } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Error al eliminar producto.', type: 'error' })
+      const msg = err.message || 'Error al eliminar producto.'
+      setFeedbackMsg({ text: msg, type: 'error' })
+      toast.error(msg)
       loadAllData() // revertir
     }
   }
@@ -409,25 +417,32 @@ export const AdminProductsManager: React.FC = () => {
         cantidad: `${ingredientForm.cantidad_numerica} ${ingredientForm.unidad_medida}`
       })
 
-      setFeedbackMsg({ text: res.message, type: 'success' })
+      const msg = res.message || 'Insumo guardado exitosamente.'
+      setFeedbackMsg({ text: msg, type: 'success' })
+      toast.success(msg)
       loadAllData()
     } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Error al guardar ingrediente.', type: 'error' })
+      const msg = err.message || 'Error al guardar ingrediente.'
+      setFeedbackMsg({ text: msg, type: 'error' })
+      toast.error(msg)
     }
   }
 
   const handleDeleteIngredient = async (id: string) => {
     if (!window.confirm('¿Seguro que deseas eliminar este ingrediente?')) return
-    
+
     // Eliminación optimista inmediata en 0ms
     setIngredients(prev => prev.filter(i => i.id !== id))
-    setFeedbackMsg({ text: 'Ingrediente eliminado.', type: 'success' })
+    setFeedbackMsg({ text: 'Insumo eliminado.', type: 'success' })
+    toast.success('Insumo eliminado correctamente.')
 
     try {
       await deleteIngredientApi(id)
       loadAllData()
     } catch (err: any) {
-      setFeedbackMsg({ text: err.message || 'Error al eliminar ingrediente.', type: 'error' })
+      const msg = err.message || 'Error al eliminar ingrediente.'
+      setFeedbackMsg({ text: msg, type: 'error' })
+      toast.error(msg)
       loadAllData() // revertir
     }
   }

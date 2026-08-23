@@ -8,8 +8,9 @@ import { AdminLayout } from './components/admin/AdminLayout'
 import { AuthModal } from './components/auth/AuthModal'
 import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
+import { ToastProvider } from './context/ToastContext'
 
-export function App() {
+export function AppContent() {
   const [currentPath, setCurrentPath] = useState(
     typeof window !== 'undefined' ? window.location.pathname : '/'
   )
@@ -124,6 +125,14 @@ export function App() {
         onSuccess={handleAuthSuccess}
       />
     </div>
+  )
+}
+
+export function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   )
 }
 

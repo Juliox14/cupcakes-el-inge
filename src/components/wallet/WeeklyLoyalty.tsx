@@ -3,6 +3,7 @@ import { Sparkles, CheckCircle2 } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import type { UserProfile } from '../../types'
 import { claimWeeklyRewardApi } from '../../services'
+import { toast } from '../../context/ToastContext'
 
 interface WeeklyLoyaltyProps {
   userProfile: UserProfile
@@ -61,13 +62,14 @@ export const WeeklyLoyalty: React.FC<WeeklyLoyaltyProps> = ({
 
       localStorage.setItem(storageKey, 'true')
       setIsClaimed(true)
+      toast.success('¡Felicidades! Reclamaste tu tiro extra semanal 🧁✨')
 
       if (onRewardClaimed) {
         onRewardClaimed()
       }
     } catch (err: any) {
       console.error('Error al reclamar recompensa:', err)
-      alert(err.message || 'Error al reclamar la recompensa.')
+      toast.error(err.message || 'Error al reclamar la recompensa.')
     } finally {
       setClaiming(false)
     }

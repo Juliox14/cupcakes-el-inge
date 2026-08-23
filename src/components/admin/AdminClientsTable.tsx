@@ -19,6 +19,7 @@ import {
 import { SlideOver } from './SlideOver'
 import type { UserProfile, Coupon, ProductoConCosto } from '../../types'
 import { registerPurchaseApi, getProductsApi } from '../../lib/api'
+import { toast } from '../../context/ToastContext'
 
 interface AdminClientsTableProps {
   clients: UserProfile[]
@@ -198,18 +199,21 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
       })
       const spinsGranted = res.spins_granted !== undefined ? res.spins_granted : (isAnon ? 0 : Math.floor(cupcakesQty / 2))
       
-      setPurchaseMsg(
-        isAnon 
-          ? `¡Venta directa registrada exitosamente! (${cupcakesQty} cupcakes - $${totalAmount} MXN).`
-          : `¡Compra registrada! Se acreditaron +${spinsGranted} jugada(s) a ${targetName}.`
-      )
+      const finalMsg = isAnon 
+        ? `¡Venta directa registrada exitosamente! (${cupcakesQty} cupcakes - $${totalAmount} MXN).`
+        : `¡Compra registrada! Se acreditaron +${spinsGranted} jugada(s) a ${targetName}.`
+      
+      setPurchaseMsg(finalMsg)
+      toast.success(finalMsg)
       onRefresh()
       setTimeout(() => {
         setIsPurchaseSlideOverOpen(false)
         setPurchaseMsg(null)
       }, 1000)
     } catch (err: any) {
-      setPurchaseMsg(`Error: ${err.message}`)
+      const errMsg = `Error: ${err.message}`
+      setPurchaseMsg(errMsg)
+      toast.error(errMsg)
       onRefresh() // revertir
     } finally {
       setRegistering(false)
