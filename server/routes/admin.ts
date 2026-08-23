@@ -372,47 +372,61 @@ const handleRegisterPurchase = async (c: any) => {
     }
 
     // 3. Regla de Negocio de Tiradas:
-    // Las promociones/descuentos NO otorgan tiradas de bono.
-    // Solo piezas regulares adicionales fuera de la promo otorgan 1 tiro por cada 2 pzas.
-    let spinsGranted = 0
-    if (body.spins_granted !== undefined) {
-      spinsGranted = Number(body.spins_granted)
-    } else if (isPromoCoupon) {
-      const extraRegularQty = Math.max(0, qty - promoCoveredQty)
-      spinsGranted = isAnonymous ? 0 : Math.floor(extraRegularQty / 2)
-    } else {
-      spinsGranted = isAnonymous ? 0 : Math.floor(qty / 2)
-    }
+    // - Las promociones/descuentos NO otorgan tiradas de bono.
+    // - Solo piezas regulares adicionales fuera de la promo otorgan 1 tiro por cada 2 pzas.
+    // - Bono de Bienvenida: Si es la PRIMERA compra de un cliente registrado (total_cupcakes_comprados === 0),
+    //   se le otorga automáticamente +1 tiro de bienvenida a la ruleta en mostrador.
+    let isFirstPurchase = false
+    let welcomeBonus = 0
 
-    // 4. Si es cliente registrado y no tenemos su nombre, consultarlo y actualizar perfil
-    let updatedProfile = null
+    let clientProfileData: any = null
     if (!isAnonymous && user_id) {
       const { data: profile } = await supabaseServer
         .from('usuarios')
         .select('nombre_completo, tiros_disponibles, total_cupcakes_comprados')
         .eq('id', user_id)
         .single()
-
+      
       if (profile) {
-        if (!client_name || client_name === 'Cliente' || client_name === 'Cliente Registrado') {
-          client_name = profile.nombre_completo
+        clientProfileData = profile
+        if ((profile.total_cupcakes_comprados || 0) === 0) {
+          isFirstPurchase = true
+          welcomeBonus = 1
         }
-        const currentSpins = profile.tiros_disponibles || 0
-        const currentCupcakes = profile.total_cupcakes_comprados || 0
-
-        const { data: updated } = await supabaseServer
-          .from('usuarios')
-          .update({
-            tiros_disponibles: currentSpins + spinsGranted,
-            total_cupcakes_comprados: currentCupcakes + qty,
-            fecha_actualizacion: new Date().toISOString()
-          })
-          .eq('id', user_id)
-          .select()
-          .single()
-
-        updatedProfile = updated
       }
+    }
+
+    let spinsGranted = 0
+    if (body.spins_granted !== undefined) {
+      spinsGranted = Number(body.spins_granted)
+    } else if (isPromoCoupon) {
+      const extraRegularQty = Math.max(0, qty - promoCoveredQty)
+      spinsGranted = (isAnonymous ? 0 : Math.floor(extraRegularQty / 2)) + welcomeBonus
+    } else {
+      spinsGranted = (isAnonymous ? 0 : Math.floor(qty / 2)) + welcomeBonus
+    }
+
+    // 4. Si es cliente registrado y no tenemos su nombre, consultarlo y actualizar perfil
+    let updatedProfile = null
+    if (!isAnonymous && user_id && clientProfileData) {
+      if (!client_name || client_name === 'Cliente' || client_name === 'Cliente Registrado') {
+        client_name = clientProfileData.nombre_completo
+      }
+      const currentSpins = clientProfileData.tiros_disponibles || 0
+      const currentCupcakes = clientProfileData.total_cupcakes_comprados || 0
+
+      const { data: updated } = await supabaseServer
+        .from('usuarios')
+        .update({
+          tiros_disponibles: currentSpins + spinsGranted,
+          total_cupcakes_comprados: currentCupcakes + qty,
+          fecha_actualizacion: new Date().toISOString()
+        })
+        .eq('id', user_id)
+        .select()
+        .single()
+
+      updatedProfile = updated
     }
 
     const finalClientName = isAnonymous 

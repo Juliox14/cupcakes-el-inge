@@ -87,16 +87,20 @@ export const ClientPurchaseSlideOver: React.FC<ClientPurchaseSlideOverProps> = (
   const finalTotalCharged = Math.max(0, regularSubtotal - discountAmount)
   const realNetProfit = finalTotalCharged - totalCost
 
-  // Cálculo de tiradas (Regla de negocio: Promociones NO generan tiradas)
-  let spins = 0
+  // Cálculo de tiradas (Regla de negocio: Promociones NO generan tiradas, 1ra compra da +1 de bienvenida)
+  const isFirstPurchase = purchaseMode === 'registered' && selectedClientForPurchase && (selectedClientForPurchase.total_cupcakes_purchased || 0) === 0
+  const welcomeSpinBonus = isFirstPurchase ? 1 : 0
+
+  let baseSpins = 0
   if (purchaseMode === 'registered') {
     if (isPromoApplied) {
       const extraRegularQty = Math.max(0, cupcakesQty - promoCoveredQty)
-      spins = Math.floor(extraRegularQty / 2)
+      baseSpins = Math.floor(extraRegularQty / 2)
     } else {
-      spins = Math.floor(cupcakesQty / 2)
+      baseSpins = Math.floor(cupcakesQty / 2)
     }
   }
+  const spins = baseSpins + welcomeSpinBonus
 
   return (
     <SlideOver
@@ -341,7 +345,12 @@ export const ClientPurchaseSlideOver: React.FC<ClientPurchaseSlideOverProps> = (
             {isPromoApplied && spins === 0 ? (
               <span className="text-amber-800 text-[11px] font-semibold">0 (Promo aplicada)</span>
             ) : (
-              <span className="font-bold text-[#F56B2A]">+{spins} jugada{spins === 1 ? '' : 's'}</span>
+              <div className="text-right">
+                <span className="font-bold text-[#F56B2A]">+{spins} jugada{spins === 1 ? '' : 's'}</span>
+                {welcomeSpinBonus > 0 && (
+                  <span className="block text-[10px] text-emerald-700 font-semibold">(🎁 Incluye +1 Tiro de Bienvenida)</span>
+                )}
+              </div>
             )}
           </div>
         </div>

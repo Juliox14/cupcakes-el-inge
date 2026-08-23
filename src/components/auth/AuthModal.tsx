@@ -136,7 +136,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password: password.trim()
       })
 
-      toast.success('¡Registro exitoso!', 'Tienes 1 tiro de bienvenida en la ruleta 🥕')
+      toast.success('¡Cuenta creada con éxito!', '¡Bienvenido! Realiza tu primera compra en mostrador para activar tu tiro de ruleta 🥕')
       handleSuccess(res.user, res.coupons)
       onClose()
     } catch (err: any) {
@@ -148,13 +148,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         email: email.trim().toLowerCase(),
         phone: cleanPhone,
         role: 'client',
-        spins_available: 1,
+        spins_available: 0,
         total_cupcakes_purchased: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
 
-      toast.success('¡Registro exitoso!', 'Tienes 1 tiro de bienvenida en la ruleta 🥕')
+      toast.success('¡Cuenta creada con éxito!', '¡Bienvenido! Realiza tu primera compra en mostrador para activar tu tiro de ruleta 🥕')
       handleSuccess(localUser)
       onClose()
     } finally {
@@ -233,7 +233,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </h2>
           <p className="text-[11px] text-[#F56B2A] font-medium">
             {authMode === 'login' && 'Ingresa a tu cuenta para jugar y canjear cupones'}
-            {authMode === 'register' && 'Únete al club y recibe 1 tiro gratis de bienvenida 🥕'}
+            {authMode === 'register' && 'Únete al club y recibe 1 tiro de bienvenida en tu 1ra compra 🥕'}
             {authMode === 'admin' && 'Acceso restringido para el Administrador Julian Castro'}
           </p>
         </div>

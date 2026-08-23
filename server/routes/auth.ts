@@ -50,7 +50,7 @@ authRouter.post('/register', rateLimiter(3, 10 * 60 * 1000, 'Demasiados intentos
       telefono: cleanPhone,
       password_hash: hashedPassword,
       rol: 'cliente',
-      tiros_disponibles: 1, // 1 tiro de regalo de bienvenida
+      tiros_disponibles: 0, // 0 tiros iniciales (el tiro de bienvenida se desbloquea en su 1ra compra en mostrador)
       total_cupcakes_comprados: 0,
       fecha_creacion: now,
       fecha_actualizacion: now
