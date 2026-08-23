@@ -183,7 +183,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       })
 
       if (res.user.role === 'admin') {
-        toast.success('¡Acceso concedido!', 'Bienvenido al panel administrativo SIPAD')
+        toast.success('¡Acceso concedido!', 'Bienvenido al panel administrativo')
         handleSuccess(res.user, res.coupons)
         onClose()
         if (onNavigateToAdmin) onNavigateToAdmin()

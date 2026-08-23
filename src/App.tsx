@@ -5,6 +5,7 @@ import { Wallet } from './components/wallet/Wallet'
 import { GameCenter } from './components/games/GameCenter'
 import { ClientProductsCatalog } from './components/products/ClientProductsCatalog'
 import { AdminLayout } from './components/admin/AdminLayout'
+import { AdminAuthGate } from './components/admin/AdminAuthGate'
 import { AuthModal } from './components/auth/AuthModal'
 import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
@@ -54,10 +55,23 @@ export function AppContent() {
     setCurrentView('wallet')
   }
 
-  // 1. RUTA /admin -> Panel Administrativo SIPAD
+  // 1. RUTA /admin -> Panel Administrativo (Protegido por Rol)
   if (currentPath === '/admin') {
+    if (currentUser.role !== 'admin') {
+      return (
+        <AdminAuthGate
+          onSuccess={(user, userCoupons) => {
+            handleAuthSuccess(user, userCoupons)
+            refreshAppData()
+          }}
+          onReturnToApp={navigateToClient}
+        />
+      )
+    }
+
     return (
       <AdminLayout
+        adminUser={currentUser}
         allUsers={allUsers}
         prizes={prizes}
         onRefreshUsers={refreshAppData}
