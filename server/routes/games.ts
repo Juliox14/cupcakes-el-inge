@@ -49,6 +49,14 @@ function toAppTier(dbTier?: string): string {
   return 'tier_40_promo'
 }
 
+function toDbTier(tier?: string | null): 'sin_premio' | 'promocion' | 'alto_valor' {
+  if (!tier) return 'promocion'
+  const t = tier.trim().toLowerCase()
+  if (t === 'tier_50_no_prize' || t === 'sin_premio') return 'sin_premio'
+  if (t === 'tier_10_high_value' || t === 'alto_valor') return 'alto_valor'
+  return 'promocion'
+}
+
 // Endpoint público para que cualquier cliente/visitante cargue los premios activos en la ruleta
 gamesRouter.get('/prizes', async (c) => {
   try {
@@ -57,28 +65,55 @@ gamesRouter.get('/prizes', async (c) => {
       return c.json({ prizes: cached, cached: true })
     }
 
-    const { data: prizes, error } = await supabaseServer
-      .from('premios')
-      .select('id, titulo, descripcion, categoria_nivel, peso_probabilidad, color_distintivo, activo, producto_id, fecha_creacion')
-      .eq('activo', true)
-      .order('peso_probabilidad', { ascending: false })
+    const [prizesRes, configRes] = await Promise.all([
+      supabaseServer
+        .from('premios')
+        .select('id, titulo, descripcion, categoria_nivel, peso_probabilidad, color_distintivo, activo, producto_id, fecha_creacion')
+        .eq('activo', true)
+        .order('peso_probabilidad', { ascending: false }),
+      supabaseServer
+        .from('configuracion_sistema')
+        .select('valor')
+        .eq('clave', 'probabilidades_categoria')
+        .maybeSingle()
+    ])
 
-    if (error) {
-      console.error('Error consultando premios en games.ts:', error)
+    if (prizesRes.error) {
+      console.error('Error consultando premios en games.ts:', prizesRes.error)
       return c.json({ error: 'Error al obtener premios.' }, 500)
     }
 
-    const formatted = (prizes || []).map((p: any) => ({
-      id: p.id,
-      title: p.titulo,
-      description: p.descripcion,
-      tier: toAppTier(p.categoria_nivel),
-      weight: p.peso_probabilidad,
-      badge_color: p.color_distintivo || '#F56B2A',
-      is_active: p.activo,
-      producto_id: p.producto_id || null,
-      created_at: p.fecha_creacion
-    }))
+    const categoryWeights: Record<string, number> = configRes.data?.valor || {
+      sin_premio: 60,
+      promocion: 30,
+      alto_valor: 10
+    }
+
+    const prizes = prizesRes.data || []
+    const countByCat: Record<string, number> = { sin_premio: 0, promocion: 0, alto_valor: 0 }
+    prizes.forEach((p: any) => {
+      const cat = toDbTier(p.categoria_nivel)
+      countByCat[cat] = (countByCat[cat] || 0) + 1
+    })
+
+    const formatted = prizes.map((p: any) => {
+      const cat = toDbTier(p.categoria_nivel)
+      const count = countByCat[cat] || 1
+      const totalCatWeight = categoryWeights[cat] !== undefined ? Number(categoryWeights[cat]) : 0
+      const exactWeight = Math.round((totalCatWeight / count) * 100) / 100
+
+      return {
+        id: p.id,
+        title: p.titulo,
+        description: p.descripcion,
+        tier: toAppTier(p.categoria_nivel),
+        weight: exactWeight,
+        badge_color: p.color_distintivo || '#F56B2A',
+        is_active: p.activo,
+        producto_id: p.producto_id || null,
+        created_at: p.fecha_creacion
+      }
+    })
 
     serverCache.set('public_prizes', formatted, 300)
     return c.json({ prizes: formatted })
@@ -98,14 +133,21 @@ gamesRouter.post('/play', rateLimiter(20, 60 * 1000, 'Demasiadas jugadas registr
       return c.json({ error: 'Se requiere id de usuario.' }, 400)
     }
 
-    // 1. Verificar Kill Switch (Configuración de juegos habilitados)
-    const { data: killSwitch } = await supabaseServer
-      .from('configuracion_sistema')
-      .select('valor')
-      .eq('clave', 'juegos_habilitados')
-      .single()
+    // 1. Verificar Kill Switch y leer configuración de probabilidades por categoría
+    const [killSwitchRes, catWeightsRes] = await Promise.all([
+      supabaseServer
+        .from('configuracion_sistema')
+        .select('valor')
+        .eq('clave', 'juegos_habilitados')
+        .maybeSingle(),
+      supabaseServer
+        .from('configuracion_sistema')
+        .select('valor')
+        .eq('clave', 'probabilidades_categoria')
+        .maybeSingle()
+    ])
 
-    const gamesEnabled = killSwitch ? Boolean(killSwitch.valor) : true
+    const gamesEnabled = killSwitchRes.data ? Boolean(killSwitchRes.data.valor) : true
 
     if (!gamesEnabled) {
       return c.json({
@@ -114,6 +156,12 @@ gamesRouter.post('/play', rateLimiter(20, 60 * 1000, 'Demasiadas jugadas registr
         message: 'Las dinámicas están pausadas temporalmente por límite de producción diaria (24 cupcakes). ¡Vuelve pronto!',
         remaining_spins: 0
       }, 503)
+    }
+
+    const categoryWeights: Record<string, number> = catWeightsRes.data?.valor || {
+      sin_premio: 60,
+      promocion: 30,
+      alto_valor: 10
     }
 
     // 2. Obtener perfil de usuario (tabla 'usuarios' o 'profiles')
@@ -228,16 +276,32 @@ gamesRouter.post('/play', rateLimiter(20, 60 * 1000, 'Demasiadas jugadas registr
 
     const activePrizeList: any[] = (prizes && prizes.length > 0) ? prizes : DEFAULT_PRIZES
 
-    // 5. Motor de probabilidades (soporta pesos decimales exactos por división equitativa)
-    const totalWeight = activePrizeList.reduce((sum: number, p: any) => sum + Number(p.peso_probabilidad ?? p.weight ?? 20), 0)
+    // 5. Motor de probabilidades matemáticamente exacto por categoría
+    const countByCat: Record<string, number> = { sin_premio: 0, promocion: 0, alto_valor: 0 }
+    activePrizeList.forEach((p: any) => {
+      const cat = toDbTier(p.categoria_nivel || p.tier)
+      countByCat[cat] = (countByCat[cat] || 0) + 1
+    })
+
+    const prizesWithWeights = activePrizeList.map((p: any) => {
+      const cat = toDbTier(p.categoria_nivel || p.tier)
+      const count = countByCat[cat] || 1
+      const totalCatWeight = categoryWeights[cat] !== undefined ? Number(categoryWeights[cat]) : 0
+      const exactWeight = totalCatWeight / count
+      return {
+        ...p,
+        _exactWeight: exactWeight
+      }
+    })
+
+    const totalWeight = prizesWithWeights.reduce((sum: number, p: any) => sum + p._exactWeight, 0)
     const randomVal = Math.random() * (totalWeight > 0 ? totalWeight : 1)
 
     let currentSum = 0
-    let selectedPrize = activePrizeList[0]
+    let selectedPrize = prizesWithWeights[0]
 
-    for (const prize of activePrizeList) {
-      const w = Number(prize.peso_probabilidad ?? prize.weight ?? 20)
-      currentSum += w
+    for (const prize of prizesWithWeights) {
+      currentSum += prize._exactWeight
       if (randomVal <= currentSum) {
         selectedPrize = prize
         break
