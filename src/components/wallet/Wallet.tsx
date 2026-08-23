@@ -4,12 +4,16 @@ import { DigitalCard } from './DigitalCard'
 import { WeeklyLoyalty } from './WeeklyLoyalty'
 import { CouponCard } from './CouponCard'
 import { CouponQRModal } from './CouponQRModal'
+import { WalletAuthPrompt } from './WalletAuthPrompt'
 
 export interface WalletProps {
   userProfile: UserProfile
   coupons: Coupon[]
   onOpenGames: () => void
   onOpenAuth?: () => void
+  onOpenLogin?: () => void
+  onOpenRegister?: () => void
+  onOpenProducts?: () => void
   onRewardClaimed?: () => void
 }
 
@@ -18,9 +22,25 @@ export const Wallet: React.FC<WalletProps> = ({
   coupons,
   onOpenGames,
   onOpenAuth,
+  onOpenLogin,
+  onOpenRegister,
+  onOpenProducts,
   onRewardClaimed,
 }) => {
   const [selectedQR, setSelectedQR] = useState<Coupon | null>(null)
+
+  const isGuest = !userProfile?.id || userProfile.id === 'guest'
+
+  // Si no está autenticado, mostrar únicamente la pantalla de registro / login y enlace a encargos
+  if (isGuest) {
+    return (
+      <WalletAuthPrompt
+        onOpenLogin={onOpenLogin || onOpenAuth || (() => {})}
+        onOpenRegister={onOpenRegister || onOpenAuth || (() => {})}
+        onOpenProducts={onOpenProducts || (() => {})}
+      />
+    )
+  }
 
   const activeCoupons = coupons.filter(
     c => c.status === 'active' || (c.status as string) === 'activo' || (c as any).estado === 'activo'

@@ -104,6 +104,9 @@ export function AppContent() {
             coupons={currentUserCoupons}
             onOpenGames={() => setCurrentView('games')}
             onOpenAuth={openLogin}
+            onOpenLogin={openLogin}
+            onOpenRegister={openRegister}
+            onOpenProducts={() => setCurrentView('productos')}
             onRewardClaimed={refreshAppData}
           />
         )}
@@ -120,6 +123,9 @@ export function AppContent() {
             userProfile={currentUser}
             prizes={prizes}
             onPlayGame={handlePlayGame}
+            onOpenLogin={openLogin}
+            onOpenRegister={openRegister}
+            onOpenProducts={() => setCurrentView('productos')}
           />
         )}
       </main>

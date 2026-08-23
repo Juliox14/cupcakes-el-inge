@@ -34,7 +34,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="text-[11px] font-medium tracking-tight">Inicio</span>
         </button>
 
-        {/* Tab 2: Productos & Encargos */}
+        {/* Tab 2: Encargos & Catálogo Libre */}
         <button
           onClick={() => setCurrentView('productos')}
           className={`flex flex-col items-center justify-center flex-1 py-1 transition cursor-pointer ${
@@ -46,7 +46,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <div className="w-6 h-6 flex items-center justify-center mb-0.5">
             <ShoppingBag size={20} className={currentView === 'productos' ? 'text-[#F56B2A]' : 'text-gray-400'} />
           </div>
-          <span className="text-[11px] font-medium tracking-tight">Productos</span>
+          <span className="text-[11px] font-medium tracking-tight">Encargos</span>
         </button>
 
         {/* Tab 3: Juegos */}
