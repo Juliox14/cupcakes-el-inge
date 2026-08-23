@@ -16,13 +16,13 @@ couponsRouter.post('/verify', async (c) => {
 
     const cleanInput = code_or_token.trim()
 
-    // Buscar cupón por código o por token_qr
+    // Buscar cupón por código o por token_qr (con relación foránea explícita de usuario_id)
     const { data: coupon, error } = await supabaseServer
       .from('cupones')
       .select(`
         *,
         premio:premios(*),
-        usuario:usuarios(*)
+        usuario:usuarios!cupones_usuario_id_fkey(*)
       `)
       .or(`codigo.eq.${cleanInput},token_qr.eq.${cleanInput}`)
       .single()
@@ -123,7 +123,7 @@ couponsRouter.post('/redeem', requireAdmin, async (c) => {
         canjeado_por: authUser?.id || (admin_id && admin_id.length === 36 ? admin_id : null)
       })
       .eq('id', coupon_id)
-      .select('*, premio:premios(*), usuario:usuarios(*)')
+      .select('*, premio:premios(*), usuario:usuarios!cupones_usuario_id_fkey(*)')
       .single()
 
     if (updateError) {
