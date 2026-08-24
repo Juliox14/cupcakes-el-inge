@@ -1,15 +1,32 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Navbar } from './components/Navbar'
 import { BottomNav } from './components/BottomNav'
 import { Wallet } from './components/wallet/Wallet'
 import { GameCenter } from './components/games/GameCenter'
 import { ClientProductsCatalog } from './components/products/ClientProductsCatalog'
-import { AdminLayout } from './components/admin/AdminLayout'
-import { AdminAuthGate } from './components/admin/AdminAuthGate'
 import { AuthModal } from './components/auth/AuthModal'
 import { useAuth } from './hooks/useAuth'
 import { useAppData } from './hooks/useAppData'
 import { ToastProvider } from './context/ToastContext'
+
+// Lazy loading diferido para componentes administrativos pesados (QR Scanner, Metrics, etc.)
+const AdminLayout = lazy(() =>
+  import('./components/admin/AdminLayout').then(m => ({ default: m.AdminLayout }))
+)
+const AdminAuthGate = lazy(() =>
+  import('./components/admin/AdminAuthGate').then(m => ({ default: m.AdminAuthGate }))
+)
+
+function AdminLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-[#FFF9F2] flex flex-col items-center justify-center p-6 text-center space-y-4">
+      <div className="w-12 h-12 rounded-2xl bg-orange-100 border-2 border-orange-300 flex items-center justify-center animate-spin">
+        <span className="text-2xl">🥕</span>
+      </div>
+      <p className="text-sm font-bold text-gray-800">Cargando panel de administración...</p>
+    </div>
+  )
+}
 
 export function AppContent() {
   const [currentPath, setCurrentPath] = useState(
@@ -59,24 +76,28 @@ export function AppContent() {
   if (currentPath === '/admin') {
     if (currentUser.role !== 'admin') {
       return (
-        <AdminAuthGate
-          onSuccess={(user, userCoupons) => {
-            handleAuthSuccess(user, userCoupons)
-            refreshAppData()
-          }}
-          onReturnToApp={navigateToClient}
-        />
+        <Suspense fallback={<AdminLoadingFallback />}>
+          <AdminAuthGate
+            onSuccess={(user, userCoupons) => {
+              handleAuthSuccess(user, userCoupons)
+              refreshAppData()
+            }}
+            onReturnToApp={navigateToClient}
+          />
+        </Suspense>
       )
     }
 
     return (
-      <AdminLayout
-        adminUser={currentUser}
-        allUsers={allUsers}
-        prizes={prizes}
-        onRefreshUsers={refreshAppData}
-        onNavigateToClient={navigateToClient}
-      />
+      <Suspense fallback={<AdminLoadingFallback />}>
+        <AdminLayout
+          adminUser={currentUser}
+          allUsers={allUsers}
+          prizes={prizes}
+          onRefreshUsers={refreshAppData}
+          onNavigateToClient={navigateToClient}
+        />
+      </Suspense>
     )
   }
 

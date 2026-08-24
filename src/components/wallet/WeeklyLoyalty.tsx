@@ -36,7 +36,8 @@ export const WeeklyLoyalty: React.FC<WeeklyLoyaltyProps> = ({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setIsClaimed(Boolean(localStorage.getItem(storageKey)))
+      const stored = Boolean(localStorage.getItem(storageKey))
+      setIsClaimed(prev => (prev !== stored ? stored : prev))
     }
   }, [userProfile.id, storageKey])
 

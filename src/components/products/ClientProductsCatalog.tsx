@@ -169,7 +169,10 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
           <img
             src={prod.imageUrl}
             alt={prod.title}
-            className="relative z-10 h-32 object-contain drop-shadow-md group-hover:scale-108 group-hover:-translate-y-1 transition-all duration-300"
+            width={128}
+            height={128}
+            decoding="async"
+            className="relative z-10 h-32 w-auto object-contain drop-shadow-md group-hover:scale-108 group-hover:-translate-y-1 transition-all duration-300"
             loading="lazy"
           />
         </div>
@@ -185,7 +188,10 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
           <img
             src={prod.imageUrl}
             alt={prod.title}
-            className="relative z-10 h-28 object-contain drop-shadow-md group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300"
+            width={112}
+            height={112}
+            decoding="async"
+            className="relative z-10 h-28 w-auto object-contain drop-shadow-md group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300"
             loading="lazy"
           />
         )}
@@ -194,13 +200,19 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
             <img
               src={prod.imageUrl}
               alt={prod.title}
-              className="h-24 object-contain drop-shadow-md -rotate-6 transform group-hover:-rotate-12 transition-transform duration-300"
+              width={96}
+              height={96}
+              decoding="async"
+              className="h-24 w-auto object-contain drop-shadow-md -rotate-6 transform group-hover:-rotate-12 transition-transform duration-300"
               loading="lazy"
             />
             <img
               src={prod.imageUrl}
               alt={prod.title}
-              className="h-28 object-contain drop-shadow-lg rotate-6 transform group-hover:rotate-12 group-hover:scale-105 transition-transform duration-300"
+              width={112}
+              height={112}
+              decoding="async"
+              className="h-28 w-auto object-contain drop-shadow-lg rotate-6 transform group-hover:rotate-12 group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
             />
           </div>
@@ -210,19 +222,28 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
             <img
               src={prod.imageUrl}
               alt={prod.title}
-              className="h-22 object-contain drop-shadow-md -rotate-12 transform group-hover:-rotate-16 transition-transform duration-300 opacity-90"
+              width={88}
+              height={88}
+              decoding="async"
+              className="h-22 w-auto object-contain drop-shadow-md -rotate-12 transform group-hover:-rotate-16 transition-transform duration-300 opacity-90"
               loading="lazy"
             />
             <img
               src={prod.imageUrl}
               alt={prod.title}
-              className="h-28 object-contain drop-shadow-xl z-20 transform group-hover:scale-105 transition-transform duration-300"
+              width={112}
+              height={112}
+              decoding="async"
+              className="h-28 w-auto object-contain drop-shadow-xl z-20 transform group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
             />
             <img
               src={prod.imageUrl}
               alt={prod.title}
-              className="h-22 object-contain drop-shadow-md rotate-12 transform group-hover:rotate-16 transition-transform duration-300 opacity-90"
+              width={88}
+              height={88}
+              decoding="async"
+              className="h-22 w-auto object-contain drop-shadow-md rotate-12 transform group-hover:rotate-16 transition-transform duration-300 opacity-90"
               loading="lazy"
             />
           </div>
@@ -233,13 +254,19 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
               <img
                 src={prod.imageUrl}
                 alt={prod.title}
-                className="h-20 object-contain drop-shadow-md -rotate-8 transform"
+                width={80}
+                height={80}
+                decoding="async"
+                className="h-20 w-auto object-contain drop-shadow-md -rotate-8 transform"
                 loading="lazy"
               />
               <img
                 src={prod.imageUrl}
                 alt={prod.title}
-                className="h-20 object-contain drop-shadow-md rotate-8 transform"
+                width={80}
+                height={80}
+                decoding="async"
+                className="h-20 w-auto object-contain drop-shadow-md rotate-8 transform"
                 loading="lazy"
               />
             </div>
@@ -247,13 +274,19 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
               <img
                 src={prod.imageUrl}
                 alt={prod.title}
-                className="h-22 object-contain drop-shadow-xl"
+                width={88}
+                height={88}
+                decoding="async"
+                className="h-22 w-auto object-contain drop-shadow-xl"
                 loading="lazy"
               />
               <img
                 src={prod.imageUrl}
                 alt={prod.title}
-                className="h-22 object-contain drop-shadow-xl scale-105"
+                width={88}
+                height={88}
+                decoding="async"
+                className="h-22 w-auto object-contain drop-shadow-xl scale-105"
                 loading="lazy"
               />
             </div>

@@ -1,0 +1,24 @@
+{
+  "name": "Cupcakes El Inge",
+  "short_name": "El Inge",
+  "description": "Cupcakes y Pasteles de Zanahoria Artesanales",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFBF7",
+  "theme_color": "#F56B2A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/cupcake-color.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/cupcake-color.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

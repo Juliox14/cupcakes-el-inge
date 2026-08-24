@@ -4,17 +4,6 @@ class RouletteAudioEngine {
   private majorPrizeAudio: HTMLAudioElement | null = null
   private normalPrizeAudio: HTMLAudioElement | null = null
 
-  constructor() {
-    if (typeof window !== 'undefined') {
-      try {
-        this.majorPrizeAudio = new Audio('/audio-premio-mayor.m4a')
-        this.majorPrizeAudio.preload = 'auto'
-        this.normalPrizeAudio = new Audio('/audio-premio.m4a')
-        this.normalPrizeAudio.preload = 'auto'
-      } catch {}
-    }
-  }
-
   private getAudioContext(): AudioContext | null {
     if (typeof window === 'undefined') return null
     if (!this.ctx) {
@@ -29,15 +18,33 @@ class RouletteAudioEngine {
     return this.ctx
   }
 
-  // Inicializar y desbloquear contexto y elementos de audio en la primera interacción del usuario
+  private getMajorPrizeAudio(): HTMLAudioElement | null {
+    if (typeof window === 'undefined') return null
+    if (!this.majorPrizeAudio) {
+      try {
+        this.majorPrizeAudio = new Audio('/audio-premio-mayor.m4a')
+      } catch {}
+    }
+    return this.majorPrizeAudio
+  }
+
+  private getNormalPrizeAudio(): HTMLAudioElement | null {
+    if (typeof window === 'undefined') return null
+    if (!this.normalPrizeAudio) {
+      try {
+        this.normalPrizeAudio = new Audio('/audio-premio.m4a')
+      } catch {}
+    }
+    return this.normalPrizeAudio
+  }
+
+  // Inicializar y desbloquear contexto y elementos de audio en la interacción del usuario
   public init() {
     this.getAudioContext()
-    if (this.majorPrizeAudio) {
-      this.majorPrizeAudio.load()
-    }
-    if (this.normalPrizeAudio) {
-      this.normalPrizeAudio.load()
-    }
+    const major = this.getMajorPrizeAudio()
+    if (major) major.load()
+    const normal = this.getNormalPrizeAudio()
+    if (normal) normal.load()
   }
 
   // Sonido de "Tic" mecánico cuando el puntero golpea un pin de la ruleta
@@ -80,9 +87,10 @@ class RouletteAudioEngine {
   // Reproducir sonido de PREMIO MAYOR (/audio-premio-mayor.m4a)
   public playMajorPrize() {
     try {
-      if (this.majorPrizeAudio) {
-        this.majorPrizeAudio.currentTime = 0
-        this.majorPrizeAudio.play().catch(() => this.playWinFallback())
+      const audio = this.getMajorPrizeAudio()
+      if (audio) {
+        audio.currentTime = 0
+        audio.play().catch(() => this.playWinFallback())
       } else {
         this.playWinFallback()
       }
@@ -94,9 +102,10 @@ class RouletteAudioEngine {
   // Reproducir sonido de PREMIO NORMAL (/audio-premio.m4a)
   public playNormalPrize() {
     try {
-      if (this.normalPrizeAudio) {
-        this.normalPrizeAudio.currentTime = 0
-        this.normalPrizeAudio.play().catch(() => this.playWinFallback())
+      const audio = this.getNormalPrizeAudio()
+      if (audio) {
+        audio.currentTime = 0
+        audio.play().catch(() => this.playWinFallback())
       } else {
         this.playWinFallback()
       }

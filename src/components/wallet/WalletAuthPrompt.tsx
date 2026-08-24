@@ -27,14 +27,16 @@ export const WalletAuthPrompt: React.FC<WalletAuthPromptProps> = ({
             <img 
               src="/cupcake-color.png" 
               alt="Cupcakes El Inge" 
+              width={56}
+              height={56}
               className="w-14 h-14 object-contain drop-shadow"
             />
           </div>
 
           <div className="space-y-1">
-            <h2 className="font-mono font-black text-xl text-gray-900">
+            <h1 className="font-mono font-black text-xl text-gray-900">
               Tu Cartera de Cupones
-            </h2>
+            </h1>
             <p className="text-xs text-gray-600 max-w-xs mx-auto">
               Inicia sesión o regístrate para acumular sellos, desbloquear tu tiro de bienvenida en tu 1ra compra y ganar premios en la ruleta 🥕✨
             </p>

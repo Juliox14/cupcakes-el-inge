@@ -21,7 +21,10 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ userProfile, onOpenAut
       <img
         src="/tarjeta-dual.png"
         alt="Tarjeta Digital El Inge"
-        className="w-full h-auto block drop-shadow-2xl"
+        width={480}
+        height={240}
+        decoding="async"
+       className="w-full h-auto block drop-shadow-2xl"
       />
 
       {/* Overlay de datos del cliente y QR de caja */}

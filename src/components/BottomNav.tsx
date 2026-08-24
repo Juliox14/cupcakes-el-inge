@@ -13,12 +13,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   spinsAvailable,
 }) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg max-w-md mx-auto">
-      <div className="flex items-center justify-around py-2">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-lg max-w-md mx-auto pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="flex items-center justify-around py-1.5 px-2">
         {/* Tab 1: Inicio (Wallet) */}
         <button
           onClick={() => setCurrentView('wallet')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition cursor-pointer ${
+          aria-label="Ir a Inicio y Cartera de Cupones"
+          className={`flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 transition cursor-pointer ${
             currentView === 'wallet'
               ? 'text-gray-900 font-bold'
               : 'text-gray-400 hover:text-gray-600'
@@ -27,7 +28,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <div className="w-6 h-6 flex items-center justify-center mb-0.5">
             <img 
               src="/cupcake-color.png" 
-              alt="Inicio" 
+              alt="" 
+              width={20}
+              height={20}
               className={`w-5 h-5 object-contain transition ${currentView === 'wallet' ? 'opacity-100 scale-110' : 'opacity-40 grayscale'}`} 
             />
           </div>
@@ -37,7 +40,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Tab 2: Encargos & Catálogo Libre */}
         <button
           onClick={() => setCurrentView('productos')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition cursor-pointer ${
+          aria-label="Ir a Encargos y Catálogo de Productos"
+          className={`flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 transition cursor-pointer ${
             currentView === 'productos'
               ? 'text-gray-900 font-bold'
               : 'text-gray-400 hover:text-gray-600'
@@ -52,7 +56,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         {/* Tab 3: Juegos */}
         <button
           onClick={() => setCurrentView('games')}
-          className={`flex flex-col items-center justify-center flex-1 py-1 transition relative ${
+          aria-label="Ir a Juegos y Ruleta de la Suerte"
+          className={`flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 transition relative cursor-pointer ${
             currentView === 'games'
               ? 'text-gray-900 font-bold'
               : 'text-gray-400 hover:text-gray-600'
@@ -63,7 +68,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           </div>
           <span className="text-[11px] font-medium tracking-tight">Juegos</span>
           {spinsAvailable > 0 && (
-            <span className="absolute top-1 right-8 bg-[#D32F2F] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+            <span className="absolute top-1 right-8 bg-[#D32F2F] text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
               {spinsAvailable}
             </span>
           )}

@@ -1,0 +1,7 @@
+# Robots.txt para Cupcakes El Inge
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://cupcakes-el-inge.com/sitemap.xml
