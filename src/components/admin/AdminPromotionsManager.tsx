@@ -72,8 +72,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     alto_valor: 10
   })
   const [savingCategoryWeights, setSavingCategoryWeights] = useState(false)
-  const [categoryModalError, setCategoryModalError] = useState<string | null>(null)
-  const [categorySuccessMsg, setCategorySuccessMsg] = useState<string | null>(null)
 
   // 2. Slide-Over: Crear o Editar Promoción
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false)
@@ -89,7 +87,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
   const [badgeColor, setBadgeColor] = useState('#F56B2A')
   
   const [loading, setLoading] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   // Cargar pesos de categoría y productos al montar
   const loadInitialData = async () => {
@@ -217,7 +214,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     setProductId('')
     setIsActive(true)
     setBadgeColor('#F56B2A')
-    setErrorMsg(null)
     setIsSlideOverOpen(true)
   }
 
@@ -234,7 +230,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     setProductId(prize.producto_id || '')
     setIsActive(prize.is_active)
     setBadgeColor(prize.badge_color || '#F56B2A')
-    setErrorMsg(null)
     setIsSlideOverOpen(true)
   }
 
@@ -244,7 +239,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
     if (!title.trim()) return
 
     setLoading(true)
-    setErrorMsg(null)
 
     const finalProductId = (tier === 'tier_50_no_prize' || !productId) ? null : productId
     const linkedProd = availableProducts.find(p => p.id === finalProductId)
@@ -324,7 +318,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
       onRefresh()
     } catch (err: any) {
       const msg = err.message || 'Error al guardar la promoción.'
-      setErrorMsg(msg)
       toast.error(msg)
       onRefresh() // revertir
     } finally {
@@ -336,7 +329,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
   const handleSaveCategoryWeights = async (e: React.FormEvent) => {
     e.preventDefault()
     setSavingCategoryWeights(true)
-    setCategoryModalError(null)
 
     try {
       const res = await updateCategoryWeightsApi({
@@ -346,16 +338,11 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
       })
 
       const msg = res.message || 'Probabilidades actualizadas y repartidas equitativamente.'
-      setCategorySuccessMsg(msg)
       toast.success(msg)
       onRefresh()
-      setTimeout(() => {
-        setIsCategoryModalOpen(false)
-        setCategorySuccessMsg(null)
-      }, 800)
+      setIsCategoryModalOpen(false)
     } catch (err: any) {
       const msg = err.message || 'Error al actualizar las probabilidades.'
-      setCategoryModalError(msg)
       toast.error(msg)
     } finally {
       setSavingCategoryWeights(false)
@@ -760,8 +747,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
         setCategoryWeights={setCategoryWeights}
         activePrizesCount={activePrizesCount}
         savingCategoryWeights={savingCategoryWeights}
-        categoryModalError={categoryModalError}
-        categorySuccessMsg={categorySuccessMsg}
         onSave={handleSaveCategoryWeights}
       />
 
@@ -794,7 +779,6 @@ export const AdminPromotionsManager: React.FC<AdminPromotionsManagerProps> = ({
         predicted={predicted}
         availableProducts={availableProducts}
         loading={loading}
-        errorMsg={errorMsg}
         onSubmit={handleSubmit}
       />
     </div>

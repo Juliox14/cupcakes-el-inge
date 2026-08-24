@@ -141,7 +141,6 @@ export function Roulette({ spinsAvailable, prizes = [], onPlay }: RouletteProps)
   const [localSpins, setLocalSpins] = useState(spinsAvailable)
   const [result, setResult]     = useState<RouletteResultState | null>(null)
   const [showMajorModal, setShowMajorModal] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   // Mapear dinámicamente todos los premios activos de Supabase con distribución intercalada
   const slices: RouletteSlice[] = useMemo(() => {
@@ -223,7 +222,6 @@ export function Roulette({ spinsAvailable, prizes = [], onPlay }: RouletteProps)
     setLocalSpins(prev => Math.max(0, prev - 1))
     setResult(null)
     setShowMajorModal(false)
-    setErrorMsg(null)
     lastPinRef.current = getPinsPassed(angleRef.current)
 
     // 1. Invocar backend para determinar resultado
@@ -420,9 +418,6 @@ export function Roulette({ spinsAvailable, prizes = [], onPlay }: RouletteProps)
         }
       </button>
 
-      {errorMsg && (
-        <p style={{ color: '#D32F2F', fontSize: '12px', marginTop: '10px' }}>{errorMsg}</p>
-      )}
 
       {result && <RouletteResultCard result={result} />}
 

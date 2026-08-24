@@ -20,8 +20,6 @@ interface CategoryWeightsModalProps {
     tier_10_high_value: number
   }
   savingCategoryWeights: boolean
-  categoryModalError: string | null
-  categorySuccessMsg: string | null
   onSave: (e: React.FormEvent) => void
 }
 
@@ -32,8 +30,6 @@ export const CategoryWeightsModal: React.FC<CategoryWeightsModalProps> = ({
   setCategoryWeights,
   activePrizesCount,
   savingCategoryWeights,
-  categoryModalError,
-  categorySuccessMsg,
   onSave,
 }) => {
   if (!isOpen) return null
@@ -88,18 +84,6 @@ export const CategoryWeightsModal: React.FC<CategoryWeightsModalProps> = ({
           </div>
           <strong className="font-mono font-black">{sumWeights}%</strong>
         </div>
-
-        {categoryModalError && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg font-bold">
-            {categoryModalError}
-          </div>
-        )}
-
-        {categorySuccessMsg && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg font-bold">
-            {categorySuccessMsg}
-          </div>
-        )}
 
         <form onSubmit={onSave} className="space-y-4">
           {/* 1. Sin Premio */}

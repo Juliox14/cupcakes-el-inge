@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import confetti from 'canvas-confetti'
 import { RefreshCw } from 'lucide-react'
 import type { PlayGameResult } from '../../types'
+import { toast } from '../../context/ToastContext'
 
 interface ScratchCardProps {
   spinsAvailable: number
@@ -13,12 +14,10 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({ spinsAvailable, onPlay
   const [gameResult, setGameResult] = useState<PlayGameResult | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isScratched, setIsScratched] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const startScratchCard = async () => {
     if (isPlaying || spinsAvailable <= 0) return
     setIsPlaying(true)
-    setErrorMsg(null)
     setIsScratched(false)
     setGameResult(null)
 
@@ -29,7 +28,8 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({ spinsAvailable, onPlay
       initCanvas()
     } catch (err: any) {
       setIsPlaying(false)
-      setErrorMsg(err.message || 'Error al iniciar el Rasca y Gana.')
+      const msg = err.message || 'Error al iniciar el Rasca y Gana.'
+      toast.error('Error en Rasca y Gana', msg)
     }
   }
 
@@ -182,12 +182,6 @@ export const ScratchCard: React.FC<ScratchCardProps> = ({ spinsAvailable, onPlay
           'Raspar tarjeta'
         )}
       </button>
-
-      {errorMsg && (
-        <div className="p-3 bg-red-100 border border-red-300 text-red-700 text-xs rounded-xl w-full">
-          {errorMsg}
-        </div>
-      )}
     </div>
   )
 }

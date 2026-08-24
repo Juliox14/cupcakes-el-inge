@@ -39,7 +39,6 @@ interface PromotionFormSlideOverProps {
   }
   availableProducts: ProductoConCosto[]
   loading: boolean
-  errorMsg: string | null
   onSubmit: (e: React.FormEvent) => void
 }
 
@@ -71,7 +70,6 @@ export const PromotionFormSlideOver: React.FC<PromotionFormSlideOverProps> = ({
   predicted,
   availableProducts,
   loading,
-  errorMsg,
   onSubmit,
 }) => {
   const selectedProduct = availableProducts.find(p => p.id === productId)
@@ -359,12 +357,6 @@ export const PromotionFormSlideOver: React.FC<PromotionFormSlideOverProps> = ({
             </div>
           </div>
         </div>
-
-        {errorMsg && (
-          <div className="p-3 bg-red-50 border border-red-300 text-red-700 rounded-md text-xs">
-            {errorMsg}
-          </div>
-        )}
       </form>
     </SlideOver>
   )

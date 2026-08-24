@@ -51,7 +51,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('')
   
   const [loading, setLoading] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   if (!isOpen) return null
 
@@ -59,12 +58,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!identifier.trim() || !password.trim()) {
-      setErrorMsg('Por favor ingresa tu correo o teléfono y tu contraseña.')
+      toast.error('Campos incompletos', 'Por favor ingresa tu correo o teléfono y tu contraseña.')
       return
     }
 
     setLoading(true)
-    setErrorMsg(null)
 
     try {
       const res = await loginUserApi({
@@ -97,7 +95,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       } else {
         const errTxt = err.message || 'Usuario no encontrado o contraseña incorrecta.'
-        setErrorMsg(errTxt)
         toast.error('Error al iniciar sesión', errTxt)
       }
     } finally {
@@ -110,7 +107,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     e.preventDefault()
     if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
       const msg = 'Todos los campos son obligatorios.'
-      setErrorMsg(msg)
       toast.warning('Campos incompletos', msg)
       return
     }
@@ -118,20 +114,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const cleanPhone = phone.replace(/\D/g, '').slice(-10)
     if (cleanPhone.length < 10) {
       const msg = 'Ingresa un número de teléfono válido a 10 dígitos.'
-      setErrorMsg(msg)
       toast.warning('Teléfono inválido', msg)
       return
     }
 
     if (!email.includes('@')) {
       const msg = 'Ingresa un correo electrónico válido.'
-      setErrorMsg(msg)
+      // 
       toast.warning('Correo inválido', msg)
       return
     }
 
     setLoading(true)
-    setErrorMsg(null)
+    // 
 
     try {
       const res = await registerUserApi({
@@ -171,14 +166,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!adminPin.trim()) {
-      const msg = 'Por favor ingresa tu contraseña o PIN de administrador.'
-      setErrorMsg(msg)
-      toast.warning('PIN requerido', msg)
+      toast.warning('PIN requerido', 'Por favor ingresa tu contraseña o PIN de administrador.')
       return
     }
 
     setLoading(true)
-    setErrorMsg(null)
 
     try {
       const res = await loginUserApi({
@@ -193,12 +185,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (onNavigateToAdmin) onNavigateToAdmin()
       } else {
         const msg = 'El usuario no cuenta con privilegios de administrador.'
-        setErrorMsg(msg)
+        // 
         toast.error('Acceso denegado', msg)
       }
     } catch (err: any) {
       const msg = err.message || 'Contraseña o PIN de administrador incorrecto.'
-      setErrorMsg(msg)
+      
       toast.error('Credenciales incorrectas', msg)
     } finally {
       setLoading(false)
@@ -211,13 +203,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const cleanMail = forgotEmail.trim().toLowerCase()
     if (!cleanMail || !cleanMail.includes('@')) {
       const msg = 'Por favor ingresa un correo electrónico válido.'
-      setErrorMsg(msg)
+      
       toast.warning('Correo inválido', msg)
       return
     }
 
     setLoading(true)
-    setErrorMsg(null)
+    
 
     try {
       const res = await forgotPasswordApi({ email: cleanMail })
@@ -225,7 +217,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setAuthMode('reset')
     } catch (err: any) {
       const msg = err.message || 'No se pudo enviar el código. Verifica que el correo esté registrado.'
-      setErrorMsg(msg)
+      
       toast.error('Error al enviar código', msg)
     } finally {
       setLoading(false)
@@ -240,27 +232,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (!cleanC || cleanC.length !== 6) {
       const msg = 'El código de verificación debe tener 6 dígitos.'
-      setErrorMsg(msg)
+      
       toast.warning('Código incompleto', msg)
       return
     }
 
     if (!newPassword || newPassword.length < 4) {
       const msg = 'La nueva contraseña debe tener al menos 4 caracteres.'
-      setErrorMsg(msg)
+      
       toast.warning('Contraseña muy corta', msg)
       return
     }
 
     if (newPassword !== confirmPassword) {
       const msg = 'Las contraseñas no coinciden. Por favor verifícalas.'
-      setErrorMsg(msg)
+      
       toast.warning('No coinciden', msg)
       return
     }
 
     setLoading(true)
-    setErrorMsg(null)
+    
 
     try {
       const res = await resetPasswordApi({
@@ -278,7 +270,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setAuthMode('login')
     } catch (err: any) {
       const msg = err.message || 'El código es inválido o ha expirado. Solicita uno nuevo.'
-      setErrorMsg(msg)
+      
       toast.error('Error al restablecer', msg)
     } finally {
       setLoading(false)
@@ -328,11 +320,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* CUERPO DEL MODAL */}
         <div className="space-y-4">
-          {errorMsg && (
-            <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold">
-              {errorMsg}
-            </div>
-          )}
 
           {/* ============================================================= */}
           {/* MODO 1: INICIAR SESIÓN (LOGIN)                                */}
@@ -374,7 +361,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onClick={() => {
                     setForgotEmail(identifier.includes('@') ? identifier : '')
                     setAuthMode('forgot')
-                    setErrorMsg(null)
+                    
                   }}
                   className="text-[11px] text-gray-500 hover:text-[#F56B2A] font-semibold hover:underline cursor-pointer"
                 >
@@ -399,7 +386,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     type="button"
                     onClick={() => {
                       setAuthMode('register')
-                      setErrorMsg(null)
+                      
                     }}
                     className="text-[#F56B2A] font-bold hover:underline"
                   >
@@ -412,7 +399,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     type="button"
                     onClick={() => {
                       setAuthMode('admin')
-                      setErrorMsg(null)
+                      
                     }}
                     className="text-[11px] text-gray-400 hover:text-gray-700 font-semibold"
                   >
@@ -502,7 +489,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     type="button"
                     onClick={() => {
                       setAuthMode('login')
-                      setErrorMsg(null)
+                      
                     }}
                     className="text-[#F56B2A] font-bold hover:underline"
                   >
@@ -556,7 +543,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   onClick={() => {
                     setAuthMode('login')
-                    setErrorMsg(null)
+                    
                   }}
                   className="text-xs text-gray-500 hover:text-gray-800 font-bold flex items-center justify-center gap-1 mx-auto cursor-pointer"
                 >
@@ -643,7 +630,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   onClick={() => {
                     setAuthMode('forgot')
-                    setErrorMsg(null)
+                    
                   }}
                   className="text-gray-500 hover:text-gray-800 font-semibold cursor-pointer"
                 >
@@ -703,7 +690,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   onClick={() => {
                     setAuthMode('login')
-                    setErrorMsg(null)
+                    
                   }}
                   className="text-xs text-gray-500 hover:text-gray-800 font-bold"
                 >

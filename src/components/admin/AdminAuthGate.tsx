@@ -15,7 +15,6 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
 }) => {
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,7 +24,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
     }
 
     setLoading(true)
-    setErrorMsg(null)
+    
 
     try {
       const res = await loginUserApi({
@@ -38,12 +37,12 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
         onSuccess(res.user, res.coupons)
       } else {
         const msg = 'El usuario no cuenta con credenciales de administrador.'
-        setErrorMsg(msg)
+        
         toast.error('Acceso Denegado', msg)
       }
     } catch (err: any) {
       const msg = err.message || 'Contraseña o PIN de administrador incorrecto.'
-      setErrorMsg(msg)
+      
       toast.error('Credenciales incorrectas', msg)
     } finally {
       setLoading(false)
@@ -74,12 +73,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
 
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {errorMsg && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-300 text-xs font-semibold text-center">
-              {errorMsg}
-            </div>
-          )}
-
+          
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-300">
               PIN / Contraseña de Seguridad

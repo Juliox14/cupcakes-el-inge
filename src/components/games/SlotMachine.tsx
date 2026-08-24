@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import confetti from 'canvas-confetti'
 import { RefreshCw } from 'lucide-react'
 import type { PlayGameResult } from '../../types'
+import { toast } from '../../context/ToastContext'
 
 interface SlotMachineProps {
   spinsAvailable: number
@@ -12,13 +13,11 @@ export const SlotMachine: React.FC<SlotMachineProps> = ({ spinsAvailable, onPlay
   const [spinning, setSpinning] = useState(false)
   const [reels, setReels] = useState(['/cupcake-color.png', '/cupcake-color.png', '/cupcake-color.png'])
   const [result, setResult] = useState<PlayGameResult | null>(null)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleSpin = async () => {
     if (spinning || spinsAvailable <= 0) return
 
     setSpinning(true)
-    setErrorMsg(null)
     setResult(null)
 
     // Animación de rodillos girando
@@ -55,7 +54,8 @@ export const SlotMachine: React.FC<SlotMachineProps> = ({ spinsAvailable, onPlay
     } catch (err: any) {
       clearInterval(interval)
       setSpinning(false)
-      setErrorMsg(err.message || 'Error al accionar la tragamonedas.')
+      const msg = err.message || 'Error al accionar la tragamonedas.'
+      toast.error('Error en Tragamonedas', msg)
     }
   }
 
@@ -127,12 +127,6 @@ export const SlotMachine: React.FC<SlotMachineProps> = ({ spinsAvailable, onPlay
           'Jalar la palanca'
         )}
       </button>
-
-      {errorMsg && (
-        <div className="p-3 bg-red-100 border border-red-300 text-red-700 text-xs rounded-xl w-full">
-          {errorMsg}
-        </div>
-      )}
 
       {result && (
         <div className={`p-4 rounded-2xl w-full text-center space-y-1.5 border-2 ${
