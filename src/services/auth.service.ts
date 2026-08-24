@@ -109,3 +109,35 @@ export async function claimWeeklyRewardApi(userId: string): Promise<{
   })
   return handleApiResponse(res, 'Error al reclamar la recompensa semanal.')
 }
+
+export async function forgotPasswordApi(params: {
+  email: string
+}): Promise<{
+  success: boolean
+  message: string
+  expires_in_minutes: number
+}> {
+  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  return handleApiResponse(res, 'Error al solicitar código de recuperación.')
+}
+
+export async function resetPasswordApi(params: {
+  email: string
+  code: string
+  new_password: string
+}): Promise<{
+  success: boolean
+  message: string
+}> {
+  const res = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  return handleApiResponse(res, 'Error al restablecer la contraseña.')
+}
+

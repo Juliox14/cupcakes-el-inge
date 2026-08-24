@@ -8,10 +8,11 @@ import {
   verifyJWT, 
   hashPassword, 
   requireAuth, 
-  requireAdmin,
+  requireAdmin, 
   extractToken 
 } from '../lib/authMiddleware.js'
 import { rateLimiter } from '../lib/rateLimit.js'
+import { sendPasswordResetEmail } from '../lib/emailService.js'
 
 export const authRouter = new Hono()
 
@@ -219,6 +220,141 @@ authRouter.post('/login', rateLimiter(5, 60 * 1000, 'Demasiados intentos de inic
   } catch (err: any) {
     console.error('Error en /api/auth/login:', err)
     return c.json({ error: 'Error al iniciar sesión.' }, 500)
+  }
+})
+
+// 2.1 SOLICITAR CÓDIGO DE RECUPERACIÓN DE CONTRASEÑA
+authRouter.post('/forgot-password', rateLimiter(3, 10 * 60 * 1000, 'Demasiadas solicitudes de recuperación. Por seguridad, espera 10 minutos.'), async (c) => {
+  try {
+    const { email } = await c.req.json()
+
+    if (!email || !email.toString().includes('@')) {
+      return c.json({ error: 'Por favor ingresa un correo electrónico válido.' }, 400)
+    }
+
+    const cleanEmail = email.toString().trim().toLowerCase()
+
+    // 1. Buscar usuario por correo
+    const { data: user, error: userError } = await supabaseServer
+      .from('usuarios')
+      .select('id, nombre_completo, correo')
+      .eq('correo', cleanEmail)
+      .single()
+
+    if (userError || !user) {
+      return c.json({ error: 'No se encontró ninguna cuenta registrada con este correo electrónico.' }, 404)
+    }
+
+    // 2. Invalidar códigos previos no utilizados
+    await supabaseServer
+      .from('codigos_recuperacion')
+      .update({ usado: true })
+      .eq('correo', cleanEmail)
+      .eq('usado', false)
+
+    // 3. Generar código criptográfico seguro de 6 dígitos
+    const code = crypto.randomInt(100000, 999999).toString()
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutos
+
+    // 4. Guardar en tabla 'codigos_recuperacion'
+    const { error: insertError } = await supabaseServer
+      .from('codigos_recuperacion')
+      .insert({
+        usuario_id: user.id,
+        correo: cleanEmail,
+        codigo: code,
+        usado: false,
+        expira_en: expiresAt,
+      })
+
+    if (insertError) {
+      console.error('Error guardando código de recuperación:', insertError)
+      return c.json({ error: 'Error al generar código de recuperación.' }, 500)
+    }
+
+    // 5. Enviar correo vía Gmail Nodemailer
+    await sendPasswordResetEmail(cleanEmail, code, user.nombre_completo)
+
+    return c.json({
+      success: true,
+      message: `Código de recuperación enviado a ${cleanEmail}. Revisa tu bandeja de entrada o spam.`,
+      expires_in_minutes: 10,
+    })
+
+  } catch (err: any) {
+    console.error('Error en /api/auth/forgot-password:', err)
+    return c.json({ error: err.message || 'Error al procesar solicitud de recuperación.' }, 500)
+  }
+})
+
+// 2.2 VERIFICAR CÓDIGO Y RESTABLECER CONTRASEÑA
+authRouter.post('/reset-password', rateLimiter(5, 10 * 60 * 1000, 'Demasiados intentos. Por seguridad, espera 10 minutos.'), async (c) => {
+  try {
+    const { email, code, new_password } = await c.req.json()
+
+    if (!email || !code || !new_password) {
+      return c.json({ error: 'Todos los campos son obligatorios: Correo, Código y Nueva Contraseña.' }, 400)
+    }
+
+    const cleanEmail = email.toString().trim().toLowerCase()
+    const cleanCode = code.toString().trim()
+
+    if (cleanCode.length !== 6) {
+      return c.json({ error: 'El código de verificación debe tener 6 dígitos.' }, 400)
+    }
+
+    if (new_password.toString().length < 4) {
+      return c.json({ error: 'La nueva contraseña debe tener al menos 4 caracteres.' }, 400)
+    }
+
+    // 1. Buscar código activo y no expirado
+    const now = new Date().toISOString()
+    const { data: resetRecord, error: codeError } = await supabaseServer
+      .from('codigos_recuperacion')
+      .select('*')
+      .eq('correo', cleanEmail)
+      .eq('codigo', cleanCode)
+      .eq('usado', false)
+      .gt('expira_en', now)
+      .order('fecha_creacion', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (codeError || !resetRecord) {
+      return c.json({ error: 'El código ingresado es inválido o ya ha expirado. Por favor solicita uno nuevo.' }, 400)
+    }
+
+    // 2. Hashear nueva contraseña
+    const newHashedPassword = hashPassword(new_password.toString().trim())
+
+    // 3. Actualizar contraseña del usuario en 'usuarios'
+    const { error: updateError } = await supabaseServer
+      .from('usuarios')
+      .update({
+        password_hash: newHashedPassword,
+        fecha_actualizacion: now,
+      })
+      .eq('id', resetRecord.usuario_id)
+
+    if (updateError) {
+      console.error('Error actualizando contraseña de usuario:', updateError)
+      return c.json({ error: 'Error al actualizar contraseña en base de datos.' }, 500)
+    }
+
+    // 4. Marcar código como usado
+    await supabaseServer
+      .from('codigos_recuperacion')
+      .update({ usado: true })
+      .eq('id', resetRecord.id)
+
+    return c.json({
+      success: true,
+      message: '¡Contraseña restablecida con éxito! Ya puedes iniciar sesión con tu nueva contraseña.',
+    })
+
+  } catch (err: any) {
+    console.error('Error en /api/auth/reset-password:', err)
+    return c.json({ error: 'Error interno al restablecer contraseña.' }, 500)
   }
 })
 
