@@ -610,7 +610,7 @@ export const AdminProductsManager: React.FC = () => {
       )}
 
       {/* 2. SUB-PESTAÑAS DE NAVEGACIÓN */}
-      <div className="flex border-b border-gray-200 text-xs font-bold gap-6">
+      <div className="flex border-b border-gray-200 text-xs font-bold gap-4 sm:gap-6 overflow-x-auto whitespace-nowrap">
         <button
           onClick={() => setActiveSubTab('products')}
           className={`pb-3 flex items-center gap-2 border-b-2 transition ${

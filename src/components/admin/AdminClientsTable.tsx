@@ -332,7 +332,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
         </div>
 
         {/* Botones de Acción Superiores */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {onOpenScanner && (
             <button
               onClick={onOpenScanner}
@@ -348,7 +348,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
             className="px-4 py-2 bg-linear-to-r from-[#F56B2A] to-carrot-600 hover:from-[#EA580C] hover:to-[#C2410C] text-white font-semibold text-xs rounded-md shadow-sm flex items-center gap-1.5 transition cursor-pointer"
           >
             <Sparkles size={15} />
-            <span>+ Añadir Giros</span>
+            <span>Añadir Giros</span>
           </button>
 
           <button
