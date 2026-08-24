@@ -500,7 +500,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
 
                       {/* Cupcakes Totales */}
                       <td className="py-3.5 px-4 text-center font-semibold text-gray-700">
-                        {client.total_cupcakes_purchased} pcs
+                        {client.total_cupcakes_purchased} pzas
                       </td>
 
                       <td className="py-3.5 px-4 text-center">

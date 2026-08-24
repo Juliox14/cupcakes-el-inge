@@ -51,7 +51,7 @@ export const ClientDetailSlideOver: React.FC<ClientDetailSlideOverProps> = ({
             <div className="p-3 bg-gray-50 rounded-md border border-gray-200">
               <span className="text-gray-500 block text-[10px] uppercase">Cupcakes Totales</span>
               <strong className="text-base text-gray-900 font-black">
-                {selectedClientDetail.total_cupcakes_purchased} pcs
+                {selectedClientDetail.total_cupcakes_purchased} pzas
               </strong>
             </div>
           </div>

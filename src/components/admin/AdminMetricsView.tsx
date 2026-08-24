@@ -188,7 +188,7 @@ export const AdminMetricsView: React.FC<AdminMetricsViewProps> = ({
                 ? 'bg-amber-200 text-amber-900 border-amber-300'
                 : 'bg-red-200 text-red-900 border-red-300'
             }`}>
-              {currentStock > 0 ? `${currentStock} pcs listas` : 'Agotado'}
+              {currentStock > 0 ? `${currentStock} piezas listas` : 'Agotado'}
             </span>
           </div>
 
@@ -287,7 +287,7 @@ export const AdminMetricsView: React.FC<AdminMetricsViewProps> = ({
             <PackageCheck size={16} className="text-[#F56B2A]" />
           </div>
           <p className="text-2xl font-bold text-[#0A2540]">
-            {loading ? '...' : `${weeklyCupcakes} pcs`}
+            {loading ? '...' : `${weeklyCupcakes} pzas`}
           </p>
           <p className="text-[10px] text-gray-400">Últimos 7 días de operación</p>
         </div>
@@ -311,7 +311,7 @@ export const AdminMetricsView: React.FC<AdminMetricsViewProps> = ({
             <TrendingUp size={16} className="text-[#0A2540]" />
           </div>
           <p className="text-2xl font-bold text-gray-900">
-            {loading ? '...' : `${cupcakesSold} pcs`}
+            {loading ? '...' : `${cupcakesSold} pzas`}
           </p>
           <p className="text-[10px] text-gray-400">${revenue} MXN históricos</p>
         </div>
@@ -364,7 +364,7 @@ export const AdminMetricsView: React.FC<AdminMetricsViewProps> = ({
             return (
               <div key={idx} className="flex flex-col items-center gap-2">
                 <span className="text-xs font-bold text-gray-800">
-                  {dayData.cupcakes} <span className="text-[10px] font-normal text-gray-500">pcs</span>
+                  {dayData.cupcakes} <span className="text-[10px] font-normal text-gray-500">pzas</span>
                 </span>
 
                 {/* Contenedor de la barra */}
@@ -381,7 +381,7 @@ export const AdminMetricsView: React.FC<AdminMetricsViewProps> = ({
                           height: `${(dayData.unregistered_cupcakes / (dayData.cupcakes || 1)) * 100}%`,
                         }}
                         className="w-full bg-[#F56B2A]"
-                        title={`Venta Directa: ${dayData.unregistered_cupcakes} pcs`}
+                        title={`Venta Directa: ${dayData.unregistered_cupcakes} pzas`}
                       />
                     )}
                     {/* Segmento Venta a Clientes (Azul Oscuro) */}
@@ -391,7 +391,7 @@ export const AdminMetricsView: React.FC<AdminMetricsViewProps> = ({
                           height: `${(dayData.registered_cupcakes / (dayData.cupcakes || 1)) * 100}%`,
                         }}
                         className="w-full bg-[#0A2540]"
-                        title={`Venta a Clientes: ${dayData.registered_cupcakes} pcs`}
+                        title={`Venta a Clientes: ${dayData.registered_cupcakes} pzas`}
                       />
                     )}
                   </div>
@@ -563,7 +563,7 @@ export const AdminMetricsView: React.FC<AdminMetricsViewProps> = ({
                       </td>
 
                       <td className="py-3 px-4 text-center font-bold">
-                        {qty} {qty === 1 ? 'pc' : 'pcs'}
+                        {qty} {qty === 1 ? 'pieza' : 'piezas'}
                       </td>
 
                       <td className="py-3 px-4 text-center font-mono font-bold text-emerald-700">

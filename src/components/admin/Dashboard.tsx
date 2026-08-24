@@ -350,7 +350,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </a>
                   </td>
                   <td className="p-3 text-center font-bold text-[#FF6D00]">{user.spins_available}</td>
-                  <td className="p-3 text-center">{user.total_cupcakes_purchased} pcs</td>
+                  <td className="p-3 text-center">{user.total_cupcakes_purchased} pzas</td>
                 </tr>
               ))}
             </tbody>

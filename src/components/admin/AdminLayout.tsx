@@ -233,12 +233,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
                   ? 'bg-[#F17B20] text-white font-bold shadow-sm shadow-[#F17B20]/25'
                   : 'text-gray-700 hover:text-[#F17B20] hover:bg-orange-50/70'
                 }`}
-              title={!isSidebarExpanded ? "Kill Switch (24 pcs)" : undefined}
+              title={!isSidebarExpanded ? "Kill Switch (24 pzas)" : undefined}
             >
               <Power size={18} className="shrink-0 transition-transform duration-200 group-hover:scale-105" />
               <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out ${isSidebarExpanded ? 'opacity-100 max-w-[180px]' : 'opacity-0 max-w-0 pointer-events-none'
                 }`}>
-                Kill Switch (24 pcs)
+                Kill Switch (24 pzas)
               </span>
             </button>
 

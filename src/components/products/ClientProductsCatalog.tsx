@@ -87,7 +87,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
       spinsGranted: 6,
       imageUrl: '/cupcake-transparente.png',
       imageCount: 3,
-      badge: '⭐ Más Popular (12 pcs)',
+      badge: '⭐ Más Popular (12 piezas)',
       badgeColor: 'bg-orange-100 text-[#F56B2A] border-orange-200'
     },
     {
@@ -113,7 +113,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
       spinsGranted: 12,
       imageUrl: '/cupcake-transparente.png',
       imageCount: 4,
-      badge: 'Lote Completo (24 pcs) 👑',
+      badge: 'Lote Completo (24 piezas) 👑',
       badgeColor: 'bg-amber-100 text-amber-900 border-amber-300'
     }
   ]

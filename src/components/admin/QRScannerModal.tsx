@@ -443,7 +443,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
                   >
                     <Minus size={14} />
                   </button>
-                  <span className="font-heading font-black text-sm px-2">{cupcakesQty} pcs</span>
+                  <span className="font-heading font-black text-sm px-2">{cupcakesQty} pzas</span>
                   <button
                     type="button"
                     onClick={() => setCupcakesQty(cupcakesQty + 1)}
