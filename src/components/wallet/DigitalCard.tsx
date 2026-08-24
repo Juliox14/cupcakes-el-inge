@@ -19,12 +19,13 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ userProfile, onOpenAut
     <div className="relative w-full max-w-[480px] mx-auto">
       {/* Imagen base de Figma */}
       <img
-        src="/tarjeta-dual.png"
+        src="/tarjeta-dual.webp"
         alt="Tarjeta Digital El Inge"
         width={480}
         height={240}
+        fetchPriority="high"
         decoding="async"
-       className="w-full h-auto block drop-shadow-2xl"
+        className="w-full h-auto block drop-shadow-2xl"
       />
 
       {/* Overlay de datos del cliente y QR de caja */}

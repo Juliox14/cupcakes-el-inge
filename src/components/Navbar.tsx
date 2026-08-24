@@ -81,9 +81,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="flex items-center cursor-pointer"
         >
           <img 
-            src="/letras.png" 
+            src="/letras.webp" 
             alt="EL INGE - CUPCAKES DE ZANAHORIA" 
-            className="h-8 object-contain"
+            width={109}
+            height={32}
+            className="h-8 w-auto object-contain"
+            decoding="async"
           />
         </div>
 

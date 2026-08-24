@@ -25,10 +25,12 @@ export const WalletAuthPrompt: React.FC<WalletAuthPromptProps> = ({
 
           <div className="w-20 h-20 mx-auto rounded-3xl bg-white shadow-md p-2 flex items-center justify-center border-2 border-orange-200">
             <img 
-              src="/cupcake-color.png" 
+              src="/cupcake-color.webp" 
               alt="Cupcakes El Inge" 
               width={56}
               height={56}
+              fetchPriority="high"
+              decoding="async"
               className="w-14 h-14 object-contain drop-shadow"
             />
           </div>

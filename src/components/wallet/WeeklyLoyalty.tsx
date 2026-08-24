@@ -85,8 +85,11 @@ export const WeeklyLoyalty: React.FC<WeeklyLoyaltyProps> = ({
           return (
             <div key={slotIndex} className="w-12 h-12 flex items-center justify-center">
               <img
-                src={isEarned ? '/cupcake-color.png' : '/cupcake-gris.png'}
-                alt={`Cupcake ${slotIndex}`}
+                src={isEarned ? '/cupcake-color.webp' : '/cupcake-gris.webp'}
+                alt={isEarned ? "Sello completado" : "Sello pendiente"}
+                width={36}
+                height={36}
+                decoding="async"
                 className={`w-11 h-11 object-contain transition-all ${isEarned ? 'scale-105 filter drop-shadow-sm' : 'opacity-60'}`}
               />
             </div>

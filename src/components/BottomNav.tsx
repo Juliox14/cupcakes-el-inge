@@ -22,16 +22,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           className={`flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 transition cursor-pointer ${
             currentView === 'wallet'
               ? 'text-gray-900 font-bold'
-              : 'text-gray-400 hover:text-gray-600'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
         >
           <div className="w-6 h-6 flex items-center justify-center mb-0.5">
             <img 
-              src="/cupcake-color.png" 
+              src="/cupcake-color.webp" 
               alt="" 
               width={20}
               height={20}
-              className={`w-5 h-5 object-contain transition ${currentView === 'wallet' ? 'opacity-100 scale-110' : 'opacity-40 grayscale'}`} 
+              className={`w-5 h-5 object-contain transition ${currentView === 'wallet' ? 'opacity-100 scale-110' : 'opacity-50 grayscale'}`} 
             />
           </div>
           <span className="text-[11px] font-medium tracking-tight">Inicio</span>
@@ -44,11 +44,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           className={`flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 transition cursor-pointer ${
             currentView === 'productos'
               ? 'text-gray-900 font-bold'
-              : 'text-gray-400 hover:text-gray-600'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
         >
           <div className="w-6 h-6 flex items-center justify-center mb-0.5">
-            <ShoppingBag size={20} className={currentView === 'productos' ? 'text-[#F56B2A]' : 'text-gray-400'} />
+            <ShoppingBag aria-hidden="true" size={20} className={currentView === 'productos' ? 'text-[#F56B2A]' : 'text-gray-600'} />
           </div>
           <span className="text-[11px] font-medium tracking-tight">Encargos</span>
         </button>
@@ -60,11 +60,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           className={`flex flex-col items-center justify-center flex-1 min-h-[48px] py-1 transition relative cursor-pointer ${
             currentView === 'games'
               ? 'text-gray-900 font-bold'
-              : 'text-gray-400 hover:text-gray-600'
+              : 'text-gray-600 hover:text-gray-900'
           }`}
         >
           <div className="w-6 h-6 flex items-center justify-center mb-0.5">
-            <Dices size={20} className={currentView === 'games' ? 'text-gray-900' : 'text-gray-400'} />
+            <Dices aria-hidden="true" size={20} className={currentView === 'games' ? 'text-gray-900' : 'text-gray-600'} />
           </div>
           <span className="text-[11px] font-medium tracking-tight">Juegos</span>
           {spinsAvailable > 0 && (

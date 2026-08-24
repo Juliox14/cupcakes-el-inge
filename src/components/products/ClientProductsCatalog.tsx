@@ -73,7 +73,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
       description: 'Nuestra receta insignia en tamaño grande: horneado con nuez, canela y especias finas, relleno y cubierto por generoso frosting de queso crema.',
       price: 400,
       spinsGranted: 10,
-      imageUrl: '/pastel-transparente.png',
+      imageUrl: '/pastel-transparente.webp',
       badge: 'Pastel Completo 🎂',
       badgeColor: 'bg-amber-100 text-amber-900 border-amber-300'
     },
@@ -85,7 +85,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
       price: 240,
       cupcakesCount: 12,
       spinsGranted: 6,
-      imageUrl: '/cupcake-transparente.png',
+      imageUrl: '/cupcake-transparente.webp',
       imageCount: 3,
       badge: '⭐ Más Popular (12 piezas)',
       badgeColor: 'bg-orange-100 text-[#F56B2A] border-orange-200'
@@ -98,7 +98,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
       price: 120,
       cupcakesCount: 6,
       spinsGranted: 3,
-      imageUrl: '/cupcake-transparente.png',
+      imageUrl: '/cupcake-transparente.webp',
       imageCount: 2,
       badge: 'Caja de 6 piezas',
       badgeColor: 'bg-orange-50 text-orange-800 border-orange-200'
@@ -111,7 +111,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
       price: 480,
       cupcakesCount: 24,
       spinsGranted: 12,
-      imageUrl: '/cupcake-transparente.png',
+      imageUrl: '/cupcake-transparente.webp',
       imageCount: 4,
       badge: 'Lote Completo (24 piezas) 👑',
       badgeColor: 'bg-amber-100 text-amber-900 border-amber-300'
@@ -131,7 +131,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
       price: customQty * 20,
       cupcakesCount: customQty,
       spinsGranted: Math.floor(customQty / 2),
-      imageUrl: '/cupcake-transparente.png',
+      imageUrl: '/cupcake-transparente.webp',
       imageCount: 1,
       badge: customQty + ' piezas a tu gusto 🧁',
       badgeColor: 'bg-orange-100 text-[#F56B2A] border-orange-200'
@@ -418,7 +418,7 @@ export const ClientProductsCatalog: React.FC<ClientProductsCatalogProps> = ({
         <div className="relative py-1 flex items-center justify-center">
           <div className="absolute w-32 h-32 rounded-full bg-orange-100/60 blur-sm pointer-events-none" />
           <img
-            src="/cupcake-transparente.png"
+            src="/cupcake-transparente.webp"
             alt="Cupcake Personalizado"
             className="relative z-10 h-20 object-contain drop-shadow-md"
           />
