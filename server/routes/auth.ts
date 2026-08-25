@@ -102,10 +102,12 @@ authRouter.post('/register', rateLimiter(3, 10 * 60 * 1000, 'Demasiados intentos
       maxAge: 60 * 60 * 24 * 14 // 14 días
     })
 
-    // Enviar correo de bienvenida en segundo plano
-    sendWelcomeEmail(cleanEmail, full_name.trim()).catch((emailErr) => {
-      console.error('Error enviando correo de bienvenida:', emailErr)
-    })
+    // Enviar correo de bienvenida (con await para que Serverless / Vercel no cierre la función antes de enviarlo)
+    try {
+      await sendWelcomeEmail(cleanEmail, full_name.trim())
+    } catch (emailErr) {
+      console.error('Error enviando correo de bienvenida en registro:', emailErr)
+    }
 
     return c.json({
       success: true,
