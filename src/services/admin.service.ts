@@ -1,5 +1,5 @@
 import { API_BASE, handleApiResponse } from './api.client'
-import type { Prize, AdminMetrics } from '../types'
+import type { Prize, AdminMetrics, Coupon } from '../types'
 
 export async function getAdminMetricsApi(): Promise<AdminMetrics & { metrics: AdminMetrics }> {
   const res = await fetch(`${API_BASE}/admin/metrics`)
@@ -187,4 +187,13 @@ export async function grantSpinsApi(
   })
   return handleApiResponse(res, 'Error al modificar los tiros del cliente.')
 }
+
+export async function getAdminCouponsApi(): Promise<{
+  success: boolean
+  coupons: Coupon[]
+}> {
+  const res = await fetch(`${API_BASE}/admin/coupons`)
+  return handleApiResponse(res, 'Error al consultar cupones de clientes.')
+}
+
 

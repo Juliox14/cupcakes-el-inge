@@ -28,7 +28,7 @@ interface AdminClientsTableProps {
   onOpenScanner?: () => void
 }
 
-type ClientSortField = 'id' | 'full_name' | 'phone' | 'spins_available' | 'total_cupcakes_purchased'
+type ClientSortField = 'id' | 'full_name' | 'phone' | 'spins_available' | 'total_cupcakes_purchased' | 'created_at'
 
 export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
   clients,
@@ -47,16 +47,16 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
   const [rowsPerPage, setRowsPerPage] = useState<number>(10)
   const [currentPage, setCurrentPage] = useState<number>(1)
 
-  // Estado de ordenamiento
-  const [sortField, setSortField] = useState<ClientSortField>('full_name')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  // Estado de ordenamiento (por defecto: fecha de registro más reciente primero)
+  const [sortField, setSortField] = useState<ClientSortField>('created_at')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   const handleSort = (field: ClientSortField) => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
     } else {
       setSortField(field)
-      setSortDirection('asc')
+      setSortDirection('desc') // Al cambiar a un campo, ordenar descendente primero para fechas/números
     }
   }
 
@@ -141,9 +141,8 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
     }
   }
 
-  // Otorgar giros rápidos (+1, +2, +5) con un solo tap
+  // Asignación rápida de tiros (+1, +2, +5)
   const handleQuickAddSpins = async (client: UserProfile, amount: number) => {
-    // Actualización optimista instantánea
     setLocalClients(prev =>
       prev.map(c =>
         c.id === client.id
@@ -161,8 +160,8 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
     try {
       const res = await grantSpinsApi(client.id, amount)
       toast.success(
-        '¡Tiros Asignados!',
-        res.message || `+${amount} tiro${amount === 1 ? '' : 's'} asignado${amount === 1 ? '' : 's'} a ${client.full_name}.`
+        '¡Giro añadido!',
+        res.message || `Se acreditó ${amount > 0 ? `+${amount}` : amount} giro a ${client.full_name}.`
       )
       onRefresh()
     } catch (err: any) {
@@ -171,11 +170,21 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
     }
   }
 
+  // Abrir modal de añadir giros
   const handleOpenSpinsSlideOver = (client?: UserProfile) => {
-    const target = client || (filteredAndSortedClients.length > 0 ? filteredAndSortedClients[0] : null)
-    setSelectedClientForSpins(target)
+    if (client) {
+      setSelectedClientForSpins(client)
+    } else {
+      setSelectedClientForSpins(filteredAndSortedClients[0] || null)
+    }
     setSpinsAmountToAdd(1)
     setIsSpinsSlideOverOpen(true)
+  }
+
+  // Abrir modal de detalle
+  const handleOpenDetailSlideOver = (client: UserProfile) => {
+    setSelectedClientDetail(client)
+    setIsDetailSlideOverOpen(true)
   }
 
   // Filtrado y ordenamiento de clientes
@@ -195,6 +204,12 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
       let comparison = 0
 
       switch (sortField) {
+        case 'created_at': {
+          const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
+          const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
+          comparison = timeA - timeB
+          break
+        }
         case 'id':
           comparison = a.id.localeCompare(b.id)
           break
@@ -238,13 +253,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
     setIsPurchaseSlideOverOpen(true)
   }
 
-  // Abrir Slide-Over para detalle
-  const handleOpenDetailSlideOver = (client: UserProfile) => {
-    setSelectedClientDetail(client)
-    setIsDetailSlideOverOpen(true)
-  }
-
-  // Registrar compra desde Slide-Over
+  // Registrar compra
   const handleRegisterPurchase = async (e: React.FormEvent) => {
     e.preventDefault()
     if (cupcakesQty <= 0) return
@@ -267,9 +276,9 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
         producto_id: selectedProductId || undefined,
         cupcakes_qty: cupcakesQty,
         unit_price: unitPrice,
-        total_amount: regularAmount, // El backend ajusta automáticamente según el cupón
+        total_amount: regularAmount,
         coupon_id: (!isAnon && selectedCouponId) ? selectedCouponId : undefined,
-        spins_granted: undefined as any, // El backend aplica la regla exacta de 0 tiros para promos
+        spins_granted: undefined as any,
         admin_id: adminUser?.id || '00000000-0000-0000-0000-000000000001'
       })
       const spinsGranted = res.spins_granted !== undefined ? res.spins_granted : (isAnon ? 0 : Math.floor(cupcakesQty / 2))
@@ -300,22 +309,23 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
       setTimeout(() => {
         setIsPurchaseSlideOverOpen(false)
         setPurchaseMsg(null)
-        setSelectedCouponId('')
-      }, 1000)
+      }, 900)
     } catch (err: any) {
-      const errMsg = `Error: ${err.message}`
+      const errMsg = err.message || 'Error al registrar la compra.'
       setPurchaseMsg(errMsg)
       toast.error(errMsg)
-      onRefresh() // revertir
     } finally {
       setRegistering(false)
     }
   }
 
-  // Cupones del cliente seleccionado
+  // Cupones del cliente seleccionado (resuelve tanto user_id como usuario_id)
   const clientCoupons = useMemo(() => {
     if (!selectedClientDetail) return []
-    return allCoupons.filter(c => c.user_id === selectedClientDetail.id)
+    return (allCoupons || []).filter(c => 
+      c.user_id === selectedClientDetail.id || 
+      (c as any).usuario_id === selectedClientDetail.id
+    )
   }, [selectedClientDetail, allCoupons])
 
   return (
@@ -415,6 +425,15 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                   </div>
                 </th>
                 <th 
+                  onClick={() => handleSort('created_at')}
+                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition select-none"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Fecha Registro</span>
+                    <span className="text-gray-400">{getSortIcon('created_at')}</span>
+                  </div>
+                </th>
+                <th 
                   onClick={() => handleSort('spins_available')}
                   className="py-3 px-4 text-center cursor-pointer hover:bg-slate-100 transition select-none"
                 >
@@ -477,6 +496,21 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                         </a>
                       </td>
 
+                      {/* Fecha de Registro */}
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                        {client.created_at ? (
+                          <span>
+                            {new Date(client.created_at).toLocaleDateString('es-MX', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+
                       {/* Tiros Ruleta con botón de ajuste rápido */}
                       <td className="py-3.5 px-4 text-center">
                         <div className="inline-flex items-center justify-center gap-1.5">
@@ -529,7 +563,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                           <button
                             onClick={() => handleOpenDetailSlideOver(client)}
                             className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 transition cursor-pointer"
-                            title="Ver Detalle"
+                            title="Ver Detalle y Cupones"
                           >
                             <Eye size={15} />
                           </button>
@@ -540,7 +574,7 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
                 })
               ) : (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-gray-400 text-xs">
+                  <td colSpan={9} className="py-8 text-center text-gray-400 text-xs">
                     No se encontraron clientes registrados.
                   </td>
                 </tr>
@@ -612,7 +646,12 @@ export const AdminClientsTable: React.FC<AdminClientsTableProps> = ({
         selectedClientForPurchase={selectedClientForPurchase}
         setSelectedClientForPurchase={setSelectedClientForPurchase}
         clients={clients}
-        clientCoupons={allCoupons}
+        clientCoupons={
+          (allCoupons || []).filter(c => 
+            (c.status === 'active' || (c as any).estado === 'activo') &&
+            (!selectedClientForPurchase || c.user_id === selectedClientForPurchase.id || (c as any).usuario_id === selectedClientForPurchase.id)
+          )
+        }
         selectedCouponId={selectedCouponId}
         setSelectedCouponId={setSelectedCouponId}
         unregisteredName={unregisteredName}

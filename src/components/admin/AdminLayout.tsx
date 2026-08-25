@@ -18,7 +18,7 @@ import { AdminProductsManager } from './AdminProductsManager'
 import { AdminMetricsView } from './AdminMetricsView'
 import { QRScannerModal } from './QRScannerModal'
 import type { UserProfile, Prize, Coupon, AdminMetrics } from '../../types'
-import { getAdminMetricsApi, getPrizesApi } from '../../lib/api'
+import { getAdminMetricsApi, getPrizesApi, getAdminCouponsApi } from '../../lib/api'
 
 interface AdminLayoutProps {
   adminUser?: UserProfile
@@ -35,7 +35,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   adminUser,
   allUsers,
   prizes: initialPrizes,
-  allCoupons = [],
+  allCoupons: initialCoupons = [],
   onReturnToApp,
   onNavigateToClient,
   onRefreshData,
@@ -52,15 +52,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const [showQRModal, setShowQRModal] = useState(false)
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null)
   const [prizes, setPrizes] = useState<Prize[]>(initialPrizes)
+  const [coupons, setCoupons] = useState<Coupon[]>(initialCoupons)
   const [loading, setLoading] = useState(false)
 
-  // Cargar métricas y catálogo de premios
+  // Cargar métricas, catálogo de premios y todos los cupones de clientes
   const loadData = async () => {
     setLoading(true)
     try {
-      const [mRes, pRes] = await Promise.allSettled([
+      const [mRes, pRes, cRes] = await Promise.allSettled([
         getAdminMetricsApi(),
         getPrizesApi(),
+        getAdminCouponsApi(),
       ])
 
       if (mRes.status === 'fulfilled' && mRes.value.metrics) {
@@ -68,6 +70,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       }
       if (pRes.status === 'fulfilled' && pRes.value.prizes) {
         setPrizes(pRes.value.prizes)
+      }
+      if (cRes.status === 'fulfilled' && cRes.value.coupons) {
+        setCoupons(cRes.value.coupons)
       }
     } catch {
       // Continuar con estado local
@@ -458,7 +463,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             <AdminClientsTable
               clients={allUsers}
               adminUser={adminUser}
-              allCoupons={allCoupons}
+              allCoupons={coupons}
               onRefresh={handleRefreshAll}
               onOpenScanner={() => setShowQRModal(true)}
             />
