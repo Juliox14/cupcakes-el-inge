@@ -85,7 +85,17 @@ adminRouter.get('/metrics', async (c) => {
       ? Math.round(((totalCouponsRedeemed || 0) / totalCouponsIssued) * 100)
       : 0
 
-    // Cálculo de Ventas Semanales (Últimos 7 días / Días de la semana)
+    // Helper para obtener fecha local YYYY-MM-DD en la zona horaria de México
+    const getLocalDateStr = (dateInput: string | Date | undefined, timeZone = 'America/Mexico_City'): string => {
+      if (!dateInput) return ''
+      const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+      if (isNaN(d.getTime())) return ''
+      const formatter = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+      return formatter.format(d)
+    }
+
+    // Cálculo de Ventas Semanales (Últimos 7 días en horario local de México)
+    const timeZone = 'America/Mexico_City'
     const now = new Date()
     const daysOfWeek = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
     const weeklyBreakdown = []
@@ -93,12 +103,13 @@ adminRouter.get('/metrics', async (c) => {
     let weeklyRevenueMxn = 0
 
     for (let i = 6; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(now.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
-      const dayName = daysOfWeek[d.getDay()]
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+      const dateStr = getLocalDateStr(d, timeZone)
+      const dayName = daysOfWeek[new Date(dateStr + 'T12:00:00Z').getUTCDay()]
+      const [, monthStr, dayStr] = dateStr.split('-')
+      const label = `${dayName} ${parseInt(dayStr, 10)}/${parseInt(monthStr, 10)}`
 
-      const dayPurchases = (purchases || []).filter(p => (p.fecha_creacion || '').startsWith(dateStr))
+      const dayPurchases = (purchases || []).filter(p => getLocalDateStr(p.fecha_creacion, timeZone) === dateStr)
       const dayCupcakes = dayPurchases.reduce((sum, p) => sum + (p.cantidad_cupcakes || 0), 0)
       const dayRevenue = dayPurchases.reduce((sum, p) => sum + Number(p.monto_total || 0), 0)
       
@@ -115,7 +126,7 @@ adminRouter.get('/metrics', async (c) => {
 
       weeklyBreakdown.push({
         day: dateStr,
-        label: `${dayName} ${d.getDate()}/${d.getMonth() + 1}`,
+        label,
         cupcakes: dayCupcakes,
         revenue: dayRevenue,
         registered_cupcakes: regCupcakes,
@@ -732,6 +743,62 @@ adminRouter.post('/prizes/category-weights', async (c) => {
     })
   } catch (err: any) {
     return c.json({ error: 'Error al actualizar probabilidades por categoría.' }, 500)
+  }
+})
+
+// Obtener todos los cupones para el panel administrativo (con datos de usuario y premio)
+adminRouter.get('/coupons', async (c) => {
+  try {
+    const { data: coupons, error } = await supabaseServer
+      .from('cupones')
+      .select(`
+        *,
+        premio:premios(*),
+        usuario:usuarios!cupones_usuario_id_fkey(*)
+      `)
+      .order('fecha_creacion', { ascending: false })
+
+    if (error) {
+      console.error('Error obteniendo cupones admin:', error)
+      return c.json({ error: 'Error al consultar cupones.' }, 500)
+    }
+
+    const mappedCoupons = (coupons || []).map((c: any) => ({
+      id: c.id,
+      code: c.codigo,
+      user_id: c.usuario_id,
+      token_qr: c.token_qr,
+      status: c.estado,
+      expires_at: c.fecha_expiracion,
+      redeemed_at: c.fecha_canje,
+      created_at: c.fecha_creacion,
+      prize: c.premio ? {
+        id: c.premio.id,
+        title: c.premio.titulo,
+        description: c.premio.descripcion,
+        tier: c.premio.categoria_nivel,
+        badge_color: c.premio.color_distintivo,
+        tipo_beneficio: c.premio.tipo_beneficio,
+        precio_promocional: c.premio.precio_promocional !== null ? Number(c.premio.precio_promocional) : null,
+        descuento_monto: c.premio.descuento_monto !== null ? Number(c.premio.descuento_monto) : 0,
+        piezas_amparadas: c.premio.piezas_amparadas !== null ? Number(c.premio.piezas_amparadas) : 1,
+        producto_id: c.premio.producto_id
+      } : undefined,
+      user_profile: c.usuario ? {
+        id: c.usuario.id,
+        full_name: c.usuario.nombre_completo,
+        email: c.usuario.correo,
+        phone: c.usuario.telefono
+      } : undefined
+    }))
+
+    return c.json({
+      success: true,
+      coupons: mappedCoupons
+    })
+  } catch (err: any) {
+    console.error('Error en GET /api/admin/coupons:', err)
+    return c.json({ error: 'Error interno al consultar cupones.' }, 500)
   }
 })
 
