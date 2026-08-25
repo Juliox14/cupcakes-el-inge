@@ -8,7 +8,9 @@ import {
   ShieldCheck,
   KeyRound,
   ArrowLeft,
-  CheckCircle2
+  CheckCircle2,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { registerUserApi, loginUserApi, forgotPasswordApi, resetPasswordApi } from '../../lib/api'
 import type { UserProfile, Coupon } from '../../types'
@@ -30,7 +32,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onAuthSuccess,
   onSuccess,
-  allUsers = [],
   onNavigateToAdmin,
 }) => {
   const handleSuccess = onAuthSuccess || onSuccess || (() => {})
@@ -50,6 +51,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   
+  // Estados para mostrar / ocultar contraseña
+  const [showPassword, setShowPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showAdminPin, setShowAdminPin] = useState(false)
+
   const [loading, setLoading] = useState(false)
 
   if (!isOpen) return null
@@ -77,26 +84,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onNavigateToAdmin()
       }
     } catch (err: any) {
-      // Fallback local si el usuario existe en memoria
-      const cleanId = identifier.trim()
-      const cleanDigits = cleanId.replace(/\D/g, '')
-      const found = allUsers.find(u => 
-        u.phone === cleanDigits || 
-        (u.email && u.email.toLowerCase() === cleanId.toLowerCase()) ||
-        (cleanId.toLowerCase() === 'admin' && u.role === 'admin')
-      )
-
-      if (found) {
-        toast.success('¡Inicio de sesión exitoso!', `Bienvenido de vuelta, ${found.full_name.split(' ')[0]}`)
-        handleSuccess(found)
-        onClose()
-        if (found.role === 'admin' && onNavigateToAdmin) {
-          onNavigateToAdmin()
-        }
-      } else {
-        const errTxt = err.message || 'Usuario no encontrado o contraseña incorrecta.'
-        toast.error('Error al iniciar sesión', errTxt)
-      }
+      const errTxt = err.message || 'Usuario no encontrado o contraseña incorrecta.'
+      toast.error('Error al iniciar sesión', errTxt)
     } finally {
       setLoading(false)
     }
@@ -120,13 +109,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     if (!email.includes('@')) {
       const msg = 'Ingresa un correo electrónico válido.'
-      // 
       toast.warning('Correo inválido', msg)
       return
     }
 
     setLoading(true)
-    // 
 
     try {
       const res = await registerUserApi({
@@ -140,23 +127,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       handleSuccess(res.user, res.coupons)
       onClose()
     } catch (err: any) {
-      // Fallback local
-      const newUserId = `user-${cleanPhone}`
-      const localUser: UserProfile = {
-        id: newUserId,
-        full_name: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        phone: cleanPhone,
-        role: 'client',
-        spins_available: 0,
-        total_cupcakes_purchased: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-
-      toast.success('¡Cuenta creada con éxito!', '¡Bienvenido! Realiza tu primera compra en mostrador para activar tu tiro de ruleta 🥕')
-      handleSuccess(localUser)
-      onClose()
+      const msg = err.message || 'Error al registrar la cuenta. Inténtalo de nuevo.'
+      toast.error('Error al registrarse', msg)
     } finally {
       setLoading(false)
     }
@@ -345,13 +317,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Lock size={16} />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
+                  className="w-full pl-10 pr-10 py-3 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                  title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
 
               {/* Botón Olvidé mi Contraseña */}
@@ -463,13 +443,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Lock size={16} />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
+                  className="w-full pl-10 pr-10 py-2.5 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                  title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
 
               <div className="pt-2">
@@ -591,13 +579,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Lock size={16} />
                 </div>
                 <input
-                  type="password"
+                  type={showNewPassword ? 'text' : 'password'}
                   placeholder="Nueva contraseña (mínimo 4 caracteres)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
+                  className="w-full pl-10 pr-10 py-2.5 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                  title={showNewPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
 
               {/* Input Confirmar Contraseña */}
@@ -606,13 +602,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Lock size={16} />
                 </div>
                 <input
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirmar nueva contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
+                  className="w-full pl-10 pr-10 py-2.5 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none transition"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                  title={showConfirmPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
 
               <div className="pt-2">
@@ -664,14 +668,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <Lock size={16} />
                 </div>
                 <input
-                  type="password"
+                  type={showAdminPin ? 'text' : 'password'}
                   placeholder="Contraseña o PIN de Administrador"
                   value={adminPin}
                   onChange={(e) => setAdminPin(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none text-center tracking-widest font-mono"
+                  className="w-full pl-10 pr-10 py-3 bg-gray-100/90 border border-transparent rounded-2xl text-xs font-semibold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-orange-500 focus:outline-none text-center tracking-widest font-mono"
                   autoFocus
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPin(!showAdminPin)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition cursor-pointer"
+                  title={showAdminPin ? 'Ocultar PIN' : 'Ver PIN'}
+                >
+                  {showAdminPin ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
 
               <div className="pt-2">

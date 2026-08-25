@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ShieldCheck, Lock, ArrowLeft, KeyRound } from 'lucide-react'
+import { ShieldCheck, Lock, ArrowLeft, KeyRound, Eye, EyeOff } from 'lucide-react'
 import { loginUserApi } from '../../services/auth.service'
 import { toast } from '../../context/ToastContext'
 import type { UserProfile, Coupon } from '../../types'
@@ -14,6 +14,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
   onReturnToApp,
 }) => {
   const [pin, setPin] = useState('')
+  const [showPin, setShowPin] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,14 +84,22 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
                 <KeyRound size={18} />
               </div>
               <input
-                type="password"
+                type={showPin ? 'text' : 'password'}
                 placeholder="••••••••••••"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-black/40 border border-white/15 rounded-2xl text-sm font-mono tracking-widest text-white placeholder-gray-600 focus:outline-none focus:border-[#F56B2A] focus:ring-1 focus:ring-[#F56B2A] transition"
+                className="w-full pl-11 pr-11 py-3.5 bg-black/40 border border-white/15 rounded-2xl text-sm font-mono tracking-widest text-white placeholder-gray-600 focus:outline-none focus:border-[#F56B2A] focus:ring-1 focus:ring-[#F56B2A] transition"
                 autoFocus
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-200 transition cursor-pointer"
+                title={showPin ? 'Ocultar contraseña' : 'Ver contraseña'}
+              >
+                {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
