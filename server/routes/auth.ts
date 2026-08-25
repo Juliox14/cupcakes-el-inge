@@ -12,7 +12,7 @@ import {
   extractToken 
 } from '../lib/authMiddleware.js'
 import { rateLimiter } from '../lib/rateLimit.js'
-import { sendPasswordResetEmail } from '../lib/emailService.js'
+import { sendPasswordResetEmail, sendWelcomeEmail } from '../lib/emailService.js'
 
 export const authRouter = new Hono()
 
@@ -100,6 +100,11 @@ authRouter.post('/register', rateLimiter(3, 10 * 60 * 1000, 'Demasiados intentos
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'Lax',
       maxAge: 60 * 60 * 24 * 14 // 14 días
+    })
+
+    // Enviar correo de bienvenida en segundo plano
+    sendWelcomeEmail(cleanEmail, full_name.trim()).catch((emailErr) => {
+      console.error('Error enviando correo de bienvenida:', emailErr)
     })
 
     return c.json({
